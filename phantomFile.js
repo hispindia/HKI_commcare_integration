@@ -1,5 +1,6 @@
 const phantom = require('phantom');
-
+const CronJob = require('cron').CronJob;
+var parser = require('cron-parser');
 function phantomReport(param,callback) {
 
 
@@ -17,7 +18,7 @@ function phantomReport(param,callback) {
 
             page.property('onResourceReceived', function (response) {
                 console.log('= onResourceReceived()');
-                //     console.log('  id: ' + response.id + ', stage: "' + response.stage + '", response: ' + JSON.stringify(response));
+                     console.log('  id: ' + response.id + ', stage: "' + response.stage + '", response: ' + JSON.stringify(response));
             });
 
 
@@ -52,66 +53,47 @@ function phantomReport(param,callback) {
 
 
             try {
-                /*var count = 0;
-                var counterIncrement = 1000;
-*/
-                var counter = setInterval(timer, 5000);
-                var yyyy = 2016, mm = 12;
+                /*
+                 * Runs every day
+                 * at 12:00:00 AM.
+                 */
+                var job = new CronJob('4 14 * * 5', function() {
+                        /*var interval = parser.parseExpression('* 00 00 * * *');
 
-                var startDate = (new Date(yyyy, mm - 1, 2));
-                var endDate = (new Date(yyyy, mm, 1));
-                var start1 = JSON.stringify(startDate), end1 = JSON.stringify(endDate),
-                    start2 = JSON.parse(start1), end2 = JSON.parse(end1),
-                    start3 = start2.split("T"), end3 = end2.split("T"),
-                    newStartDate = start3[0], newendDate = end3[0];
-                console.log("startDate new :", newStartDate);
-                console.log("endDate new :", newendDate);
-                function timer() {
-
-
-                    page.evaluate(function (data) {
+                        var End = interval.next().toString();
+                        var Start = interval.prev().toString();
+                        var startDate = (new Date(End));
+                        var endDate = (new Date(Start));
+                        var start1 = JSON.stringify(startDate), end1 = JSON.stringify(endDate),
+                            start2 = JSON.parse(start1), end2 = JSON.parse(end1),
+                            start3 = start2.split("T"), end3 = end2.split("T"),
+                            newendDate = start3[0],  newStartDate= end3[0];
 
 
-                        document.getElementById("start").value = "2017-01-01";
-                        document.getElementById("end").value = "2017-01-31";
-                        /*document.getElementById("off").value = data.count;
-                        document.getElementById("off1").value = data.count + 1000;
-                        */
+                        console.log("startDate  :", newStartDate);
+                        console.log("endDate  :", newendDate);*/
+                        page.evaluate(function (/*data*/) {
+
+
+                        document.getElementById("start").value ="2017-04-01";
+                        document.getElementById("end").value = "2017-04-10";
                         document.getElementById("Import").click();
 
 
-                    }/*, {count: count, startDate: newStartDate, endDate: newendDate}*/);
-                    /*console.log("count :", count);
-                    count = count + counterIncrement;
-*/
-
-                }
-
-
-               /* page.property('onCallback', function (data) {
-
-                    if (data.type === "exit") {
-
-                        /!*count = 0;
-                        counter = setInterval(timer, 10000);
-                        *!/
-                        try{
-                            console.log("data.type new  :", data.type);
-                            clearInterval(counter);
+                    }/*, {startDate: newStartDate, endDate: newendDate}*/);
 
 
 
-                        } catch (ex) {
-                            var fullMessage = "\nJAVASCRIPT EXCEPTION";
-                            fullMessage += "\nMESSAGE: " + ex.toString();
-                            for (var p in ex) {
-                                fullMessage += "\n" + p.toUpperCase() + ": " + ex[p];
-                            }
-                            console.log(fullMessage);
-                        }
 
-                    }
-                });*/
+
+                    }, function () {
+                        phantom.exit;
+                        /* This function is executed when the job stops */
+                    },
+                    true/* Start the job right now */
+                    /* Time zone of this job. */
+                );
+
 
 
 
@@ -126,25 +108,15 @@ function phantomReport(param,callback) {
             }
 
 
-            /*var data= page.property('onCallback', function(data){
-                if (data.type === "exit") {
-
-                }
-             });
-
-
-                 console.log("data.type :",data);*/
-
-
         });
 
 
     });
 }
 
-//http://localhost:8090/dhis/dhis-web-reporting/generateHtmlReport.action?uid=FDeK5VDy6FG&
-const BASE_URL = "http://192.168.0.35:8090/dhis";
-const REPORT_URL = "/dhis-web-reporting/generateHtmlReport.action?uid=FDeK5VDy6FG&";
+//http://202.166.205.218/suaahara2/dhis-web-reporting/generateHtmlReport.action?uid=D3fifCIiSmg&
+const BASE_URL = "http://202.166.205.218/suaahara2";
+const REPORT_URL = "/dhis-web-reporting/generateHtmlReport.action?uid=D3fifCIiSmg&";
 const DEST_PATH_BASE = "";
 
 
@@ -156,67 +128,3 @@ setTimeout(function () {
         console.log("asdfadad")
     })
 }, 100);
-/*
-
-function gotpage(page,param){
-
-    page.property('onNavigationRequested', function(url, type, willNavigate, main) {
-        console.log('= onNavigationRequested');
-        console.log('  type (cause): ' + type);
-        console.log('  will navigate: ' + willNavigate);
-        console.log('  from page\'s main frame: ' + main);
-        console.log('  destination_url: ' + url);
-
-    });
-
-   /!* page.property('onResourceReceived', function(response) {
-       console.log('= onResourceReceived()' );
-         //console.log('  id: ' + response.id + ', stage: "' + response.stage /!*+ '", response: ' + JSON.stringify(response)*!/);
-    });*!/
-
-/!*
-  page.property('onResourceRequested', function (request,url) {
-        console.log('= onResourceRequested()',url);
-        //console.log('  request: ' + JSON.stringify(request, undefined, 4));
-    });*!/
-
-    var reportPathAndName = param.REPORT_URL;
-
-
-    var status1="";
-    page.property('onLoadFinished', function(status) {
-        console.log('==== onLoadFinished()');
-        function foo() {
-
-
-
-
-        }
-
-
-
-
-
-        var fii = foo(this);
-        setTimeout(fii,10000)
-    });
-
-
-    console.log("callme :",status1);
-
-
-    /!*if(callback=="success")
-    {
-       //getelement(page);
-
-    }
-*!/
-    //  page.render('image.png');
-    page.property('viewportSize', {width: 1280, height: 1024});
-
-
-
-    //http://192.168.0.35:8090/dhis/dhis-web-commons/security/login.action
-}
-
-*/
