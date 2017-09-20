@@ -24,8 +24,8 @@
 <div class="container-fluid">
     <div class="row">
 	<div class="col-lg-*  custom">
-<b style="margin-left: 20%">Start Date :<input type="date" id ="start" required>End Date : <input type="date" id ="end"  required>Offset min : <input type="text" id ="off"  required>Offset max : <input type="text" id ="off1"  required><br><br>
-<button onClick="Import()" id="Import" style="margin-left: 47%">Start Importing Data</button>
+<b style="margin-left: 35%">Start Date :<input type="date" id ="start" required>End Date :<input type="date" id ="end"  required>Offset :<input type="text" id ="offset_val"  required></b> <br><br>
+<button onClick="Import()" id="Import" style="margin-left: 45%">Start Importing Data</button>
 
 </div>
 </div>
@@ -36,7 +36,7 @@ var orgunit_code=[];
     $.ajax({
             async : false,
             type: "GET",
-            url: "../api/organisationUnits.json?fields=*&paging=FALSE",
+            url: "../api/organisationUnits.json?fields=code,id&paging=FALSE",
             success: function(data){
                 for(var p1=0;p1<data.organisationUnits.length;p1++){
                 orgunit_code.push(data.organisationUnits[p1]);          
@@ -75,20 +75,79 @@ function getresident_id(trackEntityInstance)
             }
             }
             });
+}
+var trackedEntityInstances=[];
+function gettrackentity(householdvalue)
+{
+            $.ajax({
+                    async : false,
+                    type: "GET",
+                    url: "../api/trackedEntityInstances.json?fields=trackedEntityInstance,orgUnit,attributes[attribute,value]&filter=PPc0QNzTr34:EQ:"+householdvalue+"&ouMode=ALL&skipPaging=true",
+                    success: function(data){		
+                    for(var k=0;k<data.trackedEntityInstances.length;k++){
+                        trackedEntityInstances.push(data.trackedEntityInstances[k]);
+                    }	
+                },
+            });
+}
+var trackedEntityInstances1=[];
+function gettrackentityInstance(teivalue1)
+{
+            $.ajax({
+                    async : false,
+                    type: "GET",
+                    url: "../api/trackedEntityInstances.json?fields=trackedEntityInstance,orgUnit,attributes[attribute,value]&filter=RW51iG5BOL6:EQ:"+teivalue1+"&ouMode=ALL&skipPaging=true",
+                   success: function(data){		
+                    for(var k=0;k<data.trackedEntityInstances.length;k++){
+                        trackedEntityInstances1.push(data.trackedEntityInstances[k]);
+                    }	
+                },
+            });
 }	
+function removeDuplicates(arr) {
+    var new_arr=[],index=0;   
+    for(var i=0;i<arr.length;i++)
+    {
+        if((i+1)<arr.length)
+        {
+                if(arr[i].dataElement==arr[i+1].dataElement)
+                {
+                    index=i;
+                    arr.splice(index,1);
+                }
+        }        
+    }
+    //console.log(arr);
+    return arr;    
+}
 
 function Import(){
 
-            var typearr=[],uniquetypes = [];;
-            var datevalue,orgunitcode,nameofdataelement1,nameofdataelement2,dataElementName,dataElementId,nameofdataelement,orgunitId,datevalue1,datevalue2,valueofdataelement,tei,teivalue,formname, gps,
-            householdattributevalue;
-            var def = $.Deferred();
-            var received_on_start = document.getElementById("start").value;
-            var received_on_end = document.getElementById("end").value;
-              var offset_min = document.getElementById("off").value;
-              var offset_max = document.getElementById("off1").value;
+        var typearr=[],uniquetypes = [];;
+        var datevalue,orgunitcode,nameofdataelement1,nameofdataelement2,dataElementName,dataElementId,nameofdataelement,orgunitId,datevalue1,datevalue2,valueofdataelement,tei,teivalue,formname, gps,
+        householdattributevalue;
+        var def = $.Deferred();
+        var received_on_start = document.getElementById("start").value;
+        var received_on_end = document.getElementById("end").value;
+        var offset_value = document.getElementById("offset_val").value;
+
+
+        var total_count;
+        $.ajax({
+            type: "GET",
+            url: "https://www.commcarehq.org/a/hki-nepal-suaahara-2/api/v0.5/form/?limit=1000&received_on_start="+received_on_start+"&received_on_end="+received_on_end,
+            async: false,
+            crossDomain: true,
+            headers: {
+                "Authorization": "Basic " + btoa("harsh.atal@gmail.com" + ":" + "Harsh@123")
+            },
+            success: function (data) {
+                    var total_count1 = data.meta.total_count;
+                    total_count = total_count1 + 1000;
+            }
+            });
 			  
-			for(var offset_val=parseInt(offset_min);offset_val<parseInt(offset_max);offset_val+=1000)
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
 					
@@ -102,8 +161,10 @@ function Import(){
                 return [ date.getFullYear(), mnth, day ].join("-");
             };
             var urldate = convert();
-         //   alert(urldate);
+          //  alert(urldate);
 
+        callajax();
+        function callajax(){
             $.ajax({
                 type: "GET",
                 url: "https://www.commcarehq.org/a/hki-nepal-suaahara-2/api/v0.5/form/?limit=1000&received_on_start="+received_on_start+"&received_on_end="+received_on_end+"&offset="+offset_val,
@@ -121,6 +182,13 @@ function Import(){
                         var formpath=data.objects[q].form;
                         var formvalue=formpath["@xmlns"];
 						var form_id=formvalue.split("/");
+                        var formtype =formpath["#type"];
+                        if( formtype == 'system')
+                        {
+                            console.log("System form exist");
+                        }
+                        else
+                        {
 						//console.log("form_id"+form_id);
 						//console.log(form_id[4]);
                         	//Register household				
@@ -146,7 +214,6 @@ function Import(){
 							   
 							   for(var w=0;w<householdconsentpath.length;w++)
 								{
-								
 								if(householdconsentpath[w].equitytool_variables)
 								{
 								 householdconsentpath1_value = householdconsentpath[w].equitytool_variables;
@@ -226,6 +293,10 @@ function Import(){
                                         "attributes": [ {
                                             "attribute":"RW51iG5BOL6",
                                             "value": teivalue
+                                        },
+                                        {
+                                           "attribute":"PPc0QNzTr34",
+                                           "value": householdattributevalue
                                         }],
                                         "enrollments": [ {
                                             "orgUnit": orgunitId,
@@ -778,41 +849,51 @@ function Import(){
                          else{
                              console.log("No Register Household Exist");
                          }
+                        }
                 }
                 },
                 error: function(request, textStatus, errorThrown){
                     def.resolve('error');
+                    callajax();
                 }
             });
+}
 			}
-            addhouseholdMember(received_on_start,received_on_end,offset_min,offset_max);
-            visit1(received_on_start,received_on_end,offset_min,offset_max);
-            visit2(received_on_start,received_on_end,offset_min,offset_max);
-            visit3(received_on_start,received_on_end,offset_min,offset_max);
-            updatehouseholdInfo(received_on_start,received_on_end,offset_min,offset_max);
-            UpdatehouseholdMember(received_on_start,received_on_end,offset_min,offset_max);
+            addhouseholdMember(received_on_start,received_on_end,offset_value);
+            visit1(received_on_start,received_on_end,offset_value);
+            visit2(received_on_start,received_on_end,offset_value);
+            visit3(received_on_start,received_on_end,offset_value);
+            updatehouseholdInfo(received_on_start,received_on_end,offset_value);
+            UpdatehouseholdMember(received_on_start,received_on_end,offset_value);
 			alert("Import Completed");
 }
 
-	function addhouseholdMember(received_on_start,received_on_end,offset_min,offset_max)
+	function addhouseholdMember(received_on_start,received_on_end,offset_value)
 				{
-            var trackedEntityInstances=[];
-            $.ajax({
-                    async : false,
-                    type: "GET",
-                    url: "../api/trackedEntityInstances.json?ouMode=ALL&program=Srb5XJoZXYP&skipPaging=true",
-                    success: function(data){		
-                    for(var k=0;k<data.trackedEntityInstances.length;k++){
-                        trackedEntityInstances.push(data.trackedEntityInstances[k])
-                    }	
-                },
-            });
+        
         var residentageentrypath=[];
-
-        for(var offset_val=parseInt(offset_min);offset_val<parseInt(offset_max);offset_val+=1000)
+        var def = $.Deferred();
+        var total_count;
+            $.ajax({
+                type: "GET",
+                url: "https://www.commcarehq.org/a/hki-nepal-suaahara-2/api/v0.5/form/?limit=1000&received_on_start="+received_on_start+"&received_on_end="+received_on_end,
+                async: false,
+                crossDomain: true,
+                headers: {
+                    "Authorization": "Basic " + btoa("harsh.atal@gmail.com" + ":" + "Harsh@123")
+                },
+                success: function (data) {
+                        var total_count1 = data.meta.total_count;
+                        total_count = total_count1 + 1000;
+                }
+             });
+			  
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
 
+callajax();
+function callajax(){
         $.ajax({
         type: "GET",
         url: "https://www.commcarehq.org/a/hki-nepal-suaahara-2/api/v0.5/form/?limit=1000&received_on_start="+received_on_start+"&received_on_end="+received_on_end+"&offset="+offset_val,
@@ -830,6 +911,13 @@ function Import(){
                 var formpath=data.objects[q].form;
                 var formvalue=formpath["@xmlns"];
                 var form_id=formvalue.split("/");
+                var formtype =formpath["#type"];
+                if( formtype == 'system')
+                {
+                    console.log("System form exist");
+                }
+                else
+                {
 				if(form_id[4] =='F8ACD7FE-B152-496E-9C19-5BE6FCB1DDB6')
 				{
 				if(formpath.case)
@@ -843,6 +931,8 @@ function Import(){
 				datevalue1 = caseusercasepath["@date_modified"];
 				datevalue2 = datevalue1.split("T");
 				datevalue = datevalue2[0];
+
+                gettrackentityInstance(teivalue1);
       
 				 if(formpath.resident_age_entry){
 				   residentageentry_value1 = formpath.resident_age_entry;	   
@@ -865,14 +955,21 @@ function Import(){
 					valueofdataelement5 = valueofdataelement4.substring(0,7);
 				  }					
 				
-                for(var p1=0;p1<trackedEntityInstances.length;p1++)
+                if(trackedEntityInstances1.length == 0)
+                {       
+                    //   console.log("No TrackedEntityInstance Exist");
+                }
+                else
+                {
+
+                for(var p1=0;p1<trackedEntityInstances1.length;p1++)
                 {	
-                    for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-                    {
-                    if(trackedEntityInstances[p1].attributes[kk].value==teivalue1)
-                        {
-                    var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
-                    var orgUnit1 = trackedEntityInstances[p1].orgUnit;
+                 //   for(var kk=0;kk<trackedEntityInstances1[p1].attributes.length;kk++)
+                //    {
+                //    if(trackedEntityInstances1[p1].attributes[kk].value==teivalue1)
+                //       {
+                    var trackEntityInstance=trackedEntityInstances1[p1].trackedEntityInstance;
+                    var orgUnit1 = trackedEntityInstances1[p1].orgUnit;
         		   
                     getresident_id(trackEntityInstance);
 
@@ -1092,7 +1189,6 @@ function Import(){
                                 for(var keys in residentageentrypath)
 									{
 									var val1= residentageentrypath[keys];
-                                    }
                                 if(val1.hasOwnProperty(nameofdataelement))
                                 {	
 									
@@ -1103,8 +1199,11 @@ function Import(){
                                         value:  valueofdataelement
                                     })
                                 }
-								else{}							                              
-                                }            
+								else{}
+                                    }							                              
+                                }
+
+                        event.dataValues = removeDuplicates(event.dataValues);            
 
 					$.ajax({
                             async: false,
@@ -1123,47 +1222,59 @@ function Import(){
                             }
                         });                
                     }   
-                       residentageentrypath=[],resident_id_existall=[];	     
-					   }
+                       residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];	     
+					//   }
                                 /*else{
 										console.log("No TrackedEntityInstance Exist");
 										}*/
-										}           
+							//			}           
                                 }								                      		
                 }
+                residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];
 				}
 					}
+                }
                          else{		
 						 console.log("No Add Household member exist");
                                     
                          }
+                }
                     }
                     },
                 error: function(request, textStatus, errorThrown){
                     def.resolve('error');
+                    callajax();
                 }
             });
+}
             }
 }
 
-   function visit1(received_on_start,received_on_end,offset_min,offset_max)
+   function visit1(received_on_start,received_on_end,offset_value)
 				{
-            var trackedEntityInstances=[];
-            $.ajax({
-                    async : false,
-                    type: "GET",
-                    url: "../api/trackedEntityInstances.json?ouMode=ALL&program=Srb5XJoZXYP&skipPaging=true",
-                    success: function(data){		
-                    for(var k=0;k<data.trackedEntityInstances.length;k++){
-                        trackedEntityInstances.push(data.trackedEntityInstances[k])
-                    }	
-                },
+		var update_data=[],backgroundvar=[];
+        var def = $.Deferred();
+        var total_count;
+        $.ajax({
+            type: "GET",
+            url: "https://www.commcarehq.org/a/hki-nepal-suaahara-2/api/v0.5/form/?limit=1000&received_on_start="+received_on_start+"&received_on_end="+received_on_end,
+            async: false,
+            crossDomain: true,
+            headers: {
+                "Authorization": "Basic " + btoa("harsh.atal@gmail.com" + ":" + "Harsh@123")
+            },
+            success: function (data) {
+                    var total_count1 = data.meta.total_count;
+                    total_count = total_count1 + 1000;
+            }
             });
-		var update_data=[];
-        for(var offset_val=parseInt(offset_min);offset_val<parseInt(offset_max);offset_val+=1000)
+			  
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
 
+    callajax();
+    function callajax(){
         $.ajax({
         type: "GET",
         url: "https://www.commcarehq.org/a/hki-nepal-suaahara-2/api/v0.5/form/?limit=1000&received_on_start="+received_on_start+"&received_on_end="+received_on_end+"&offset="+offset_val,
@@ -1180,9 +1291,22 @@ function Import(){
             {
                 var formpath=data.objects[q].form;
                 var formvalue=formpath["@xmlns"];
-                var form_id=formvalue.split("/");					 
+                var form_id=formvalue.split("/");
+                var formtype =formpath["#type"];
+                if( formtype == 'system')
+                {
+                    console.log("System form exist");
+                }
+                else
+                {					 
 				if(form_id[4] =='55F4F616-2669-4EC9-AD60-049A79AF0A5F')
 				{
+              var backgroundvariable_Path=formpath.background_variables;
+              backgroundvar.push(backgroundvariable_Path);
+              var householdvalue=backgroundvariable_Path["household_id"];
+
+              gettrackentity(householdvalue);
+
 				if(formpath.case)
 				{
 			  var casee= formpath.case;
@@ -1216,14 +1340,20 @@ function Import(){
 					valueofdataelement4 = valueofdataelement1[1];
 					valueofdataelement5 = valueofdataelement4.substring(0,7);
 				  }
-							
-				
-					for(var p1=0;p1<trackedEntityInstances.length;p1++)
+		
+                if(trackedEntityInstances.length == 0)
+                {       
+                    //   console.log("No TrackedEntityInstance Exist");
+                }
+                else
+                {
+
+                    for(var p1=0;p1<trackedEntityInstances.length;p1++)
 					{	
-							for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-							{
-							if(trackedEntityInstances[p1].attributes[kk].value==teivalue1)
-							 {
+                  //      for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
+                   //     {
+                   //     if(trackedEntityInstances[p1].attributes[kk].value == householdvalue)
+                    //        {							
 						   var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
 						   var orgUnit1 = trackedEntityInstances[p1].orgUnit;
 						   
@@ -1263,6 +1393,21 @@ function Import(){
                             nameofdataelement1 = dataElementName.substring(dataElementName.lastIndexOf("/") + 1, dataElementName.length);
                             nameofdataelement2 = nameofdataelement1.split("-");
                             nameofdataelement = nameofdataelement2[0];
+
+                                for(var key in backgroundvariable_Path)
+                                {
+                                    var jj=key;
+                                    if(key == nameofdataelement || key == dataelement_name || key == dataelement_name1)
+                                    {
+                                        valueofdataelement=backgroundvariable_Path[key];
+                                        event.dataValues.push({
+                                            dataElement: dataElementId,
+                                            value:  valueofdataelement
+                                        })
+                                    }
+                                    else{}
+                                }
+
 
                                 if(nameofdataelement == 'resident_mother_mostrecent_FCHVinteraction' || dataelement_name == 'resident_mother_mostrecent_FCHVinteraction')
                                 {
@@ -2780,7 +2925,10 @@ function Import(){
                                     else{}
                                     }
                                 }
-                                }            
+                                }
+
+                    event.dataValues = removeDuplicates(event.dataValues);
+
 					$.ajax({
                             async: false,
                             type: "POST",
@@ -2797,13 +2945,15 @@ function Import(){
                                 console.log("Event not created of Visit 1!");
                             }
                         });
-				    	update_data=[];			
-					   }
+				    	update_data=[],trackedEntityInstances=[],backgroundvar=[];			
+			//	 }
                                 /*else{
-										console.log("No TrackedEntityInstance Exist");
+										console.log("No TrackedEntityInstance Exist of Visit 1");
 										}*/
-										}           
-                                }								
+                             //           	}           
+                                }
+                }
+                update_data=[],trackedEntityInstances=[],backgroundvar=[];																
 				////////////			
                 }
 				}
@@ -2811,33 +2961,43 @@ function Import(){
                          else{		
 						 console.log("No Visit 1 exist");             
                          }
+                }
                     }
                     },
                 error: function(request, textStatus, errorThrown){
                     def.resolve('error');
+                    callajax();
                 }
             });
+}
             }       
 }
 
-function visit2(received_on_start,received_on_end,offset_min,offset_max)
+function visit2(received_on_start,received_on_end,offset_value)
 				{
-            var trackedEntityInstances=[];
-            $.ajax({
-                    async : false,
-                    type: "GET",
-                    url: "../api/trackedEntityInstances.json?ouMode=ALL&program=Srb5XJoZXYP&skipPaging=true",
-                    success: function(data){		
-                    for(var k=0;k<data.trackedEntityInstances.length;k++){
-                        trackedEntityInstances.push(data.trackedEntityInstances[k])
-                    }	
-                },
+			var update_data=[],backgroundvar=[];
+            var def = $.Deferred();
+        var total_count;
+        $.ajax({
+            type: "GET",
+            url: "https://www.commcarehq.org/a/hki-nepal-suaahara-2/api/v0.5/form/?limit=1000&received_on_start="+received_on_start+"&received_on_end="+received_on_end,
+            async: false,
+            crossDomain: true,
+            headers: {
+                "Authorization": "Basic " + btoa("harsh.atal@gmail.com" + ":" + "Harsh@123")
+            },
+            success: function (data) {
+                    var total_count1 = data.meta.total_count;
+                    total_count = total_count1 + 1000;
+            }
             });
-			var update_data=[];
-            for(var offset_val=parseInt(offset_min);offset_val<parseInt(offset_max);offset_val+=1000)
+			  
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
 
+    callajax();
+    function callajax(){
         $.ajax({
         type: "GET",
         url: "https://www.commcarehq.org/a/hki-nepal-suaahara-2/api/v0.5/form/?limit=1000&received_on_start="+received_on_start+"&received_on_end="+received_on_end+"&offset="+offset_val,
@@ -2854,9 +3014,22 @@ function visit2(received_on_start,received_on_end,offset_min,offset_max)
             {
                 var formpath=data.objects[q].form;
                 var formvalue=formpath["@xmlns"];
-                var form_id=formvalue.split("/");					 
+                var form_id=formvalue.split("/");
+                var formtype =formpath["#type"];
+                if( formtype == 'system')
+                {
+                    console.log("System form exist");
+                }
+                else
+                {					 
 				if(form_id[4] =='3C193B5B-5DE8-4F51-B4C9-AF6482231A66')
 				{
+              var backgroundvariable_Path=formpath.background_variables;
+              backgroundvar.push(backgroundvariable_Path);
+              var householdvalue=backgroundvariable_Path["household_id"];
+
+              gettrackentity(householdvalue);
+
 				if(formpath.case)
 				{
 			  var casee= formpath.case;
@@ -2891,16 +3064,24 @@ function visit2(received_on_start,received_on_end,offset_min,offset_max)
 					valueofdataelement4 = valueofdataelement1[1];
 					valueofdataelement5 = valueofdataelement4.substring(0,7);
 				  }
+
+                if(trackedEntityInstances.length == 0)
+                {       
+                    //   console.log("No TrackedEntityInstance Exist");
+                   // debugger;
+                }
+                else
+                {
 								
-					for(var p1=0;p1<trackedEntityInstances.length;p1++)
+			    for(var p1=0;p1<trackedEntityInstances.length;p1++)
 					{	
-							for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-							{
-							if(trackedEntityInstances[p1].attributes[kk].value==teivalue1)
-							 {
+                //        for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
+                 //      {
+                 //      if(trackedEntityInstances[p1].attributes[kk].value == householdvalue)
+                  //         {							
 						   var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
 						   var orgUnit1 = trackedEntityInstances[p1].orgUnit;
-						   
+
 						var event = {
 						trackedEntityInstance: trackEntityInstance,
 						orgUnit: orgUnit1,
@@ -2937,6 +3118,21 @@ function visit2(received_on_start,received_on_end,offset_min,offset_max)
                             nameofdataelement1 = dataElementName.substring(dataElementName.lastIndexOf("/") + 1, dataElementName.length);
                             nameofdataelement2 = nameofdataelement1.split("-");
                             nameofdataelement = nameofdataelement2[0];
+
+                            for(var key in backgroundvariable_Path)
+                                {
+                                    var jj=key;
+                                    if(key == nameofdataelement || key == dataelement_name || key == dataelement_name1)
+                                    {
+                                       //console.log(key);
+                                        valueofdataelement=backgroundvariable_Path[key];
+                                        event.dataValues.push({
+                                            dataElement: dataElementId,
+                                            value:  valueofdataelement
+                                        })
+                                    }
+
+                                }
 
                                 if(nameofdataelement == 'resident_mother_mostrecent_FCHVinteraction' || dataelement_name == 'resident_mother_mostrecent_FCHVinteraction')
                                 {
@@ -4633,16 +4829,17 @@ function visit2(received_on_start,received_on_end,offset_min,offset_max)
                                     for(var keys in update_data)
                                         {
                                         var val1= update_data[keys];
-                                        }
                                     if(val1.hasOwnProperty(nameofdataelement))
-                                    {	                                       
-                                        valueofdataelement = update_data[keys][nameofdataelement];                                                                     
+                                    {	
+                                        
+                                        valueofdataelement = update_data[keys][nameofdataelement];
+                                                                        
                                         event.dataValues.push({
                                             dataElement: dataElementId,
                                             value:  valueofdataelement
                                         })
                                     }
-                                    else if(val1.hasOwnProperty(dataelement_name)){
+                                     else if(val1.hasOwnProperty(dataelement_name)){
                                         valueofdataelement = update_data[keys][dataelement_name];                                       
                                         event.dataValues.push({
                                             dataElement: dataElementId,
@@ -4657,8 +4854,12 @@ function visit2(received_on_start,received_on_end,offset_min,offset_max)
                                         })
                                     }
                                     else{}
+                                    }
                                 }
-                                }            
+                                }
+
+                    event.dataValues = removeDuplicates(event.dataValues);
+
 					$.ajax({
                             async: false,
                             type: "POST",
@@ -4675,13 +4876,15 @@ function visit2(received_on_start,received_on_end,offset_min,offset_max)
                                 console.log("Event not created of Visit 2!");
                             }
                         });
-					    update_data=[];				
-					   }
+					    update_data=[],trackedEntityInstances=[],backgroundvar=[];				
+                      //      }
                                 /*else{
-										console.log("No TrackedEntityInstance Exist");
+										console.log("No TrackedEntityInstance Exist of Visit 2");
 										}*/
-										}           
-                                }								
+                     //   }
+                    }
+              }
+               update_data=[],trackedEntityInstances=[],backgroundvar=[];									
 				////////////			
                 }
 				}
@@ -4689,31 +4892,43 @@ function visit2(received_on_start,received_on_end,offset_min,offset_max)
                          else{		
 						 console.log("No Visit 2 exist");                                  
                          }
+                }
                     }
                     },
                 error: function(request, textStatus, errorThrown){
                     def.resolve('error');
+                    callajax();
                 }
             });
+    }
             }       
 }
-function visit3(received_on_start,received_on_end,offset_min,offset_max)
+
+function visit3(received_on_start,received_on_end,offset_value)
 				{
-            var trackedEntityInstances=[];
-            $.ajax({
-                    async : false,
-                    type: "GET",
-                    url: "../api/trackedEntityInstances.json?ouMode=ALL&program=Srb5XJoZXYP&skipPaging=true",
-                    success: function(data){		
-                    for(var k=0;k<data.trackedEntityInstances.length;k++){
-                        trackedEntityInstances.push(data.trackedEntityInstances[k])
-                    }	
-                },
+			var update_data=[],backgroundvar=[];
+            var def = $.Deferred();
+        var total_count;
+        $.ajax({
+            type: "GET",
+            url: "https://www.commcarehq.org/a/hki-nepal-suaahara-2/api/v0.5/form/?limit=1000&received_on_start="+received_on_start+"&received_on_end="+received_on_end,
+            async: false,
+            crossDomain: true,
+            headers: {
+                "Authorization": "Basic " + btoa("harsh.atal@gmail.com" + ":" + "Harsh@123")
+            },
+            success: function (data) {
+                    var total_count1 = data.meta.total_count;
+                    total_count = total_count1 + 1000;
+            }
             });
-			var update_data=[];
-            for(var offset_val=parseInt(offset_min);offset_val<parseInt(offset_max);offset_val+=1000)
+			  
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
+
+        callajax();
+    function callajax(){
 
         $.ajax({
         type: "GET",
@@ -4731,9 +4946,22 @@ function visit3(received_on_start,received_on_end,offset_min,offset_max)
             {
                 var formpath=data.objects[q].form;
                 var formvalue=formpath["@xmlns"];
-                var form_id=formvalue.split("/");					 
+                var form_id=formvalue.split("/");
+                var formtype =formpath["#type"];
+                if( formtype == 'system')
+                {
+                    console.log("System form exist");
+                }
+                else
+                {					 
 				if(form_id[4] =='aa04a8e61e5080b6f3b2f4aa5f142a5d1b9a11b5')
 				{
+              var backgroundvariable_Path=formpath.background_variables;
+              backgroundvar.push(backgroundvariable_Path);
+              var householdvalue=backgroundvariable_Path["household_id"];
+
+              gettrackentity(householdvalue);
+
 				if(formpath.case)
 				{
 			  var casee= formpath.case;
@@ -4768,12 +4996,20 @@ function visit3(received_on_start,received_on_end,offset_min,offset_max)
 					valueofdataelement5 = valueofdataelement4.substring(0,7);
 				  }
 				
-					for(var p1=0;p1<trackedEntityInstances.length;p1++)
+                if(trackedEntityInstances.length == 0)
+                {       
+                    //   console.log("No TrackedEntityInstance Exist");
+                   // debugger;
+                }
+                else
+                {
+
+                for(var p1=0;p1<trackedEntityInstances.length;p1++)
 					{	
-							for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-							{
-							if(trackedEntityInstances[p1].attributes[kk].value==teivalue1)
-							 {
+             //           for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
+              //          {
+              //          if(trackedEntityInstances[p1].attributes[kk].value == householdvalue)
+               //             {							
 						   var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
 						   var orgUnit1 = trackedEntityInstances[p1].orgUnit;
 						   
@@ -4813,6 +5049,21 @@ function visit3(received_on_start,received_on_end,offset_min,offset_max)
                             nameofdataelement1 = dataElementName.substring(dataElementName.lastIndexOf("/") + 1, dataElementName.length);
                             nameofdataelement2 = nameofdataelement1.split("-");
                             nameofdataelement = nameofdataelement2[0];
+
+                            for(var key in backgroundvariable_Path)
+                                {
+                                    var jj=key;
+                                    if(key == nameofdataelement || key == dataelement_name || key == dataelement_name1)
+                                    {
+                                       //console.log(key);
+                                        valueofdataelement=backgroundvariable_Path[key];
+                                        event.dataValues.push({
+                                            dataElement: dataElementId,
+                                            value:  valueofdataelement
+                                        })
+                                    }
+
+                                }
 
                                 if(nameofdataelement == 'resident_mother_mostrecent_FCHVinteraction_6to23' || dataelement_name == 'resident_mother_mostrecent_FCHVinteraction_6to23')
                                 {
@@ -6275,7 +6526,10 @@ function visit3(received_on_start,received_on_end,offset_min,offset_max)
                                     else{}
                                     }
                                 }
-                                }            
+                                }  
+
+                    event.dataValues = removeDuplicates(event.dataValues);
+
 					$.ajax({
                             async: false,
                             type: "POST",
@@ -6292,13 +6546,15 @@ function visit3(received_on_start,received_on_end,offset_min,offset_max)
                                 console.log("Event not created of Visit 3!")
                             }
                         });
-					    update_data=[];				
-					   }
+					    update_data=[],trackedEntityInstances=[],backgroundvar=[];				
+					//  }	
                                 /*else{
-										console.log("No TrackedEntityInstance Exist");
+										console.log("No TrackedEntityInstance Exist of Visit 3");
 										}*/
-										}           
-                                }								
+                    //   }
+                    }
+                }
+                update_data=[],trackedEntityInstances=[],backgroundvar=[];											
 				////////////			
                 }
 				}
@@ -6307,38 +6563,48 @@ function visit3(received_on_start,received_on_end,offset_min,offset_max)
 						 console.log("No Visit 3 exist");
                                     
                          }
+                }
 		
                      }
                     },
                 error: function(request, textStatus, errorThrown){
                     def.resolve('error');
+                    callajax();
                 }
             });
+            }
             }       
 }
 
-function updatehouseholdInfo(received_on_start,received_on_end,offset_min,offset_max){
-            var trackedEntityInstances=[];
-            $.ajax({
-                    async : false,
-                    type: "GET",
-                    url: "../api/trackedEntityInstances.json?ouMode=ALL&program=Srb5XJoZXYP&skipPaging=true",
-                    success: function(data){		
-                    for(var k=0;k<data.trackedEntityInstances.length;k++){
-                        trackedEntityInstances.push(data.trackedEntityInstances[k])
-                    }	
-                },
-            });
-            var datevalue,orgunitcode,nameofdataelement1,nameofdataelement2,dataElementName,dataElementId,nameofdataelement,orgunitId,datevalue1,datevalue2,valueofdataelement,tei,teivalue,formname, gps,householdattributevalue;
-            var def = $.Deferred();
+function updatehouseholdInfo(received_on_start,received_on_end,offset_value){
+            
+        var datevalue,orgunitcode,nameofdataelement1,nameofdataelement2,dataElementName,dataElementId,nameofdataelement,orgunitId,datevalue1,datevalue2,valueofdataelement,tei,teivalue,formname, gps,householdattributevalue;
+        var def = $.Deferred();
 			  
-			for(var offset_val=parseInt(offset_min);offset_val<parseInt(offset_max);offset_val+=1000)
+		var total_count;
+        $.ajax({
+            type: "GET",
+            url: "https://www.commcarehq.org/a/hki-nepal-suaahara-2/api/v0.5/form/?limit=1000&received_on_start="+received_on_start+"&received_on_end="+received_on_end,
+            async: false,
+            crossDomain: true,
+            headers: {
+                "Authorization": "Basic " + btoa("harsh.atal@gmail.com" + ":" + "Harsh@123")
+            },
+            success: function (data) {
+                    var total_count1 = data.meta.total_count;
+                    total_count = total_count1 + 1000;
+            }
+            });
+			  
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
-					
+
 			var householdconsentpath=[];
 			var householdlocationpath=[],householdattributevalue=[],householdconsentpath1=[],householdconsentpath2=[],householdconsentpath3=[],householdconsentpath4=[];
 
+    callajax();
+    function callajax(){
             $.ajax({
                 type: "GET",
                 url: "https://www.commcarehq.org/a/hki-nepal-suaahara-2/api/v0.5/form/?limit=1000&received_on_start="+received_on_start+"&received_on_end="+received_on_end+"&offset="+offset_val,
@@ -6356,6 +6622,13 @@ function updatehouseholdInfo(received_on_start,received_on_end,offset_min,offset
                         var formpath=data.objects[q].form;
                         var formvalue=formpath["@xmlns"];
 						var form_id=formvalue.split("/");
+                        var formtype =formpath["#type"];
+                        if( formtype == 'system')
+                        {
+                            console.log("System form exist");
+                        }
+                        else
+                        {
                         	//Update household				
                         if(form_id[4] =='9196decaf61dfc6d6c0c0759116f85026e1900f4')
                          {
@@ -6371,6 +6644,8 @@ function updatehouseholdInfo(received_on_start,received_on_end,offset_min,offset
                             datevalue1 = caseusercasepath["@date_modified"];
                             datevalue2 = datevalue1.split("T");
                             datevalue = datevalue2[0];
+
+                             gettrackentityInstance(teivalue);
 							
 						   
 						   if(formpath.household_consent_yes){
@@ -6445,15 +6720,22 @@ function updatehouseholdInfo(received_on_start,received_on_end,offset_min,offset
                                 valueofdataelement4 = valueofdataelement1[1];
                                 valueofdataelement5 = valueofdataelement4.substring(0,7);
                               }
-							  
-                for(var p1=0;p1<trackedEntityInstances.length;p1++)
+
+				if(trackedEntityInstances1.length == 0)
+                {       
+                    //   console.log("No TrackedEntityInstance Exist");
+                }
+                else
+                {
+
+                for(var p1=0;p1<trackedEntityInstances1.length;p1++)
                 {	
-                    for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-                    {
-                    if(trackedEntityInstances[p1].attributes[kk].value==teivalue)
-                        {
-                    var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
-                    var orgUnit1 = trackedEntityInstances[p1].orgUnit;
+               //     for(var kk=0;kk<trackedEntityInstances1[p1].attributes.length;kk++)
+               //     {
+               //  if(trackedEntityInstances1[p1].attributes[kk].value==teivalue)
+                //       {
+                    var trackEntityInstance=trackedEntityInstances1[p1].trackedEntityInstance;
+                    var orgUnit1 = trackedEntityInstances1[p1].orgUnit;
                                             
                 var event = {
                     trackedEntityInstance: trackEntityInstance,
@@ -6955,7 +7237,9 @@ function updatehouseholdInfo(received_on_start,received_on_end,offset_min,offset
 								else{}
 								}
                                 }
-                    }             
+                    }
+
+                    event.dataValues = removeDuplicates(event.dataValues);             
 
                         $.ajax({
                             async: false,
@@ -6973,47 +7257,59 @@ function updatehouseholdInfo(received_on_start,received_on_end,offset_min,offset
                                 console.log("Update Household Event not added!");
                             }
                         });  
-						 householdconsentpath=[];householdlocationpath=[];householdattributevalue=[];householdconsentpath1=[];householdconsentpath2=[];householdconsentpath3=[];householdconsentpath4=[];       
-                        }
+						 householdconsentpath=[];householdlocationpath=[];householdattributevalue=[];householdconsentpath1=[];householdconsentpath2=[];householdconsentpath3=[];householdconsentpath4=[];trackedEntityInstances1=[];       
+                     //   }
 							/*else{
 										console.log("No TrackedEntityInstance Exist");
 										}*/
-										}           
+							//		}           
                                 }	
                          }
+                         householdconsentpath=[];householdlocationpath=[];householdattributevalue=[];householdconsentpath1=[];householdconsentpath2=[];householdconsentpath3=[];householdconsentpath4=[];trackedEntityInstances1=[];
                           }
+                        }
                          }	   
                          else{
                              console.log("No Update Household Exist");
                          }
+                        }
                 }
                 },
                 error: function(request, textStatus, errorThrown){
                     def.resolve('error');
+                    callajax();
                 }
             });
+            }
 			}
 }
 
-function UpdatehouseholdMember(received_on_start,received_on_end,offset_min,offset_max)
+function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
 				{
-            var trackedEntityInstances=[];
-            $.ajax({
-                    async : false,
-                    type: "GET",
-                    url: "../api/trackedEntityInstances.json?ouMode=ALL&program=Srb5XJoZXYP&skipPaging=true",
-                    success: function(data){		
-                    for(var k=0;k<data.trackedEntityInstances.length;k++){
-                        trackedEntityInstances.push(data.trackedEntityInstances[k])
-                    }	
-                },
-            });
-        var residentageentrypath=[], resident_is_alive_path=[];
 
-        for(var offset_val=parseInt(offset_min);offset_val<parseInt(offset_max);offset_val+=1000)
+        var residentageentrypath=[], resident_is_alive_path=[];
+        var def = $.Deferred();
+        var total_count;
+        $.ajax({
+            type: "GET",
+            url: "https://www.commcarehq.org/a/hki-nepal-suaahara-2/api/v0.5/form/?limit=1000&received_on_start="+received_on_start+"&received_on_end="+received_on_end,
+            async: false,
+            crossDomain: true,
+            headers: {
+                "Authorization": "Basic " + btoa("harsh.atal@gmail.com" + ":" + "Harsh@123")
+            },
+            success: function (data) {
+                    var total_count1 = data.meta.total_count;
+                    total_count = total_count1 + 1000;
+            }
+            });
+			  
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
 
+           callajax();
+    function callajax(){
         $.ajax({
         type: "GET",
         url: "https://www.commcarehq.org/a/hki-nepal-suaahara-2/api/v0.5/form/?limit=1000&received_on_start="+received_on_start+"&received_on_end="+received_on_end+"&offset="+offset_val,
@@ -7031,6 +7327,13 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_min,offs
                 var formpath=data.objects[q].form;
                 var formvalue=formpath["@xmlns"];
                 var form_id=formvalue.split("/");
+                var formtype =formpath["#type"];
+                if( formtype == 'system')
+                {
+                    console.log("System form exist");
+                }
+                else
+                {
 				if(form_id[4] =='67a197cfb37259d99bd5fd2f12f349b68623cf18')
 				{
 				if(formpath.case)
@@ -7044,6 +7347,8 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_min,offs
 				datevalue1 = caseusercasepath["@date_modified"];
 				datevalue2 = datevalue1.split("T");
 				datevalue = datevalue2[0];
+
+                 gettrackentityInstance(teivalue1);
                 
                 if(formpath.resident_is_alive)
                 {
@@ -7076,14 +7381,21 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_min,offs
 					valueofdataelement5 = valueofdataelement4.substring(0,7);
 				  }*/					
 				
-                for(var p1=0;p1<trackedEntityInstances.length;p1++)
+                if(trackedEntityInstances1.length == 0)
+                {       
+                    //   console.log("No TrackedEntityInstance Exist");
+                }
+                else
+                {
+
+                for(var p1=0;p1<trackedEntityInstances1.length;p1++)
                 {	
-                    for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-                    {
-                    if(trackedEntityInstances[p1].attributes[kk].value==teivalue1)
-                        {
-                    var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
-                    var orgUnit1 = trackedEntityInstances[p1].orgUnit;
+            //        for(var kk=0;kk<trackedEntityInstances1[p1].attributes.length;kk++)
+              //     {
+              //      if(trackedEntityInstances1[p1].attributes[kk].value==teivalue1)
+                //       {
+                    var trackEntityInstance=trackedEntityInstances1[p1].trackedEntityInstance;
+                    var orgUnit1 = trackedEntityInstances1[p1].orgUnit;
         		   
                     //getresident_id(trackEntityInstance);
 
@@ -7321,7 +7633,6 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_min,offs
                                 for(var keys in resident_is_alive_path)
 									{
 									var val1= resident_is_alive_path[keys];
-                                    }
                                 if(val1.hasOwnProperty(nameofdataelement))
                                 {	
 									
@@ -7333,10 +7644,10 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_min,offs
                                     })
                                 }
 								else{}
+                                    }
                                 for(var keys in residentageentrypath)
 									{
 									var val1= residentageentrypath[keys];
-                                    }
                                 if(val1.hasOwnProperty(nameofdataelement))
                                 {	
 									
@@ -7347,8 +7658,11 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_min,offs
                                         value:  valueofdataelement
                                     })
                                 }
-								else{}							                              
-                                }            
+								else{}
+                                    }							                              
+                                } 
+
+                    event.dataValues = removeDuplicates(event.dataValues);           
 
 					$.ajax({
                             async: false,
@@ -7367,13 +7681,15 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_min,offs
                             }
                         });                
                   //  }   
-                       residentageentrypath=[],resident_id_existall=[];	     
-					   }
+                       residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];	     
+					//   }
                                 /*else{
 										console.log("No TrackedEntityInstance Exist");
 										}*/
-										}           
-                                }								                      		
+							//			}           
+                                }
+                }
+                residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];								                      		
                 }
 				}
 					}
@@ -7381,12 +7697,15 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_min,offs
 						 console.log("No Update Household member exist");
                                     
                          }
+                }
                     }
                     },
                 error: function(request, textStatus, errorThrown){
                     def.resolve('error');
+                    callajax();
                 }
             });
+        }
             }
 }
 </script>

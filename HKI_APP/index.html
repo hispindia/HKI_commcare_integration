@@ -24,8 +24,8 @@
 <div class="container-fluid">
     <div class="row">
 	<div class="col-lg-*  custom">
-<b style="margin-left: 35%">Start Date :<input type="date" id ="start" required>End Date :<input type="date" id ="end"  required></b> <br><br>
-<button onClick="Import()" id="dataImport" style="margin-left: 45%">Start Importing Data</button>
+<b style="margin-left: 35%">Start Date :<input type="date" id ="start" required>End Date :<input type="date" id ="end"  required>Offset :<input type="text" id ="offset_val"  required></b> <br><br>
+<button onClick="Import()" id="Import" style="margin-left: 45%">Start Importing Data</button>
 
 </div>
 </div>
@@ -89,22 +89,39 @@ function gettrackentity(householdvalue)
                     }	
                 },
             });
+}
+var trackedEntityInstances1=[];
+function gettrackentityInstance(teivalue1)
+{
+            $.ajax({
+                    async : false,
+                    type: "GET",
+                    url: "../../trackedEntityInstances.json?fields=trackedEntityInstance,orgUnit,attributes[attribute,value]&filter=RW51iG5BOL6:EQ:"+teivalue1+"&ouMode=ALL&skipPaging=true",
+                   success: function(data){		
+                    for(var k=0;k<data.trackedEntityInstances.length;k++){
+                        trackedEntityInstances1.push(data.trackedEntityInstances[k])
+                    }	
+                },
+            });
 }	
-function removeDuplicates(arr, key) {
-    if (!(arr instanceof Array) || key && typeof key !== 'string') {
-        return false;
-    }
+function removeDuplicates(arr) {
 
-    if (key && typeof key === 'string') {
-        return arr.filter((obj, index, arr) => {
-            return arr.map(mapObj => mapObj[key]).indexOf(obj[key]) === index;
-        });
-
-    } else {
-        return arr.filter(function(item, index, arr) {
-            return arr.indexOf(item) == index;
-        });
+    var new_arr=[],index=0;
+    
+    for(var i=0;i<arr.length;i++)
+    {
+        if((i+1)<arr.length)
+        {
+                if(arr[i].dataElement==arr[i+1].dataElement)
+                {
+                    index=i;
+                    arr.splice(index,1);
+                }
+        }
+        
     }
+    //console.log(arr);
+    return arr;    
 }
 
 function Import(){
@@ -115,6 +132,8 @@ function Import(){
         var def = $.Deferred();
         var received_on_start = document.getElementById("start").value;
         var received_on_end = document.getElementById("end").value;
+        var offset_value = document.getElementById("offset_val").value;
+
 
         var total_count;
         $.ajax({
@@ -131,7 +150,7 @@ function Import(){
             }
             });
 			  
-			for(var offset_val=0;offset_val<parseInt(total_count);offset_val+=1000)
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
 					
@@ -166,6 +185,13 @@ function Import(){
                         var formpath=data.objects[q].form;
                         var formvalue=formpath["@xmlns"];
 						var form_id=formvalue.split("/");
+                        var formtype =formpath["#type"];
+                        if( formtype == 'system')
+                        {
+                            console.log("System form exist");
+                        }
+                        else
+                        {
 						//console.log("form_id"+form_id);
 						//console.log(form_id[4]);
                         	//Register household				
@@ -826,6 +852,7 @@ function Import(){
                          else{
                              console.log("No Register Household Exist");
                          }
+                        }
                 }
                 },
                 error: function(request, textStatus, errorThrown){
@@ -835,30 +862,20 @@ function Import(){
             });
 }
 			}
-            addhouseholdMember(received_on_start,received_on_end);
-            visit1(received_on_start,received_on_end);
-            visit2(received_on_start,received_on_end);
-            visit3(received_on_start,received_on_end);
-            updatehouseholdInfo(received_on_start,received_on_end);
-            UpdatehouseholdMember(received_on_start,received_on_end);
+            addhouseholdMember(received_on_start,received_on_end,offset_value);
+            visit1(received_on_start,received_on_end,offset_value);
+            visit2(received_on_start,received_on_end,offset_value);
+            visit3(received_on_start,received_on_end,offset_value);
+            updatehouseholdInfo(received_on_start,received_on_end,offset_value);
+            UpdatehouseholdMember(received_on_start,received_on_end,offset_value);
 			alert("Import Completed");
 }
 
-	function addhouseholdMember(received_on_start,received_on_end)
+	function addhouseholdMember(received_on_start,received_on_end,offset_value)
 				{
-            var trackedEntityInstances=[];
-            $.ajax({
-                    async : false,
-                    type: "GET",
-                    url: "../../trackedEntityInstances.json?fields=trackedEntityInstance,orgUnit,attributes[attribute,value]&ouMode=ALL&program=Srb5XJoZXYP&skipPaging=true",
-                    success: function(data){		
-                    for(var k=0;k<data.trackedEntityInstances.length;k++){
-                        trackedEntityInstances.push(data.trackedEntityInstances[k])
-                    }	
-                },
-            });
+        
         var residentageentrypath=[];
-         var def = $.Deferred();
+        var def = $.Deferred();
         var total_count;
             $.ajax({
                 type: "GET",
@@ -874,7 +891,7 @@ function Import(){
                 }
              });
 			  
-			for(var offset_val=0;offset_val<parseInt(total_count);offset_val+=1000)
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
 
@@ -897,6 +914,13 @@ function callajax(){
                 var formpath=data.objects[q].form;
                 var formvalue=formpath["@xmlns"];
                 var form_id=formvalue.split("/");
+                var formtype =formpath["#type"];
+                if( formtype == 'system')
+                {
+                    console.log("System form exist");
+                }
+                else
+                {
 				if(form_id[4] =='F8ACD7FE-B152-496E-9C19-5BE6FCB1DDB6')
 				{
 				if(formpath.case)
@@ -910,6 +934,8 @@ function callajax(){
 				datevalue1 = caseusercasepath["@date_modified"];
 				datevalue2 = datevalue1.split("T");
 				datevalue = datevalue2[0];
+
+                gettrackentityInstance(teivalue1);
       
 				 if(formpath.resident_age_entry){
 				   residentageentry_value1 = formpath.resident_age_entry;	   
@@ -932,14 +958,21 @@ function callajax(){
 					valueofdataelement5 = valueofdataelement4.substring(0,7);
 				  }					
 				
-                for(var p1=0;p1<trackedEntityInstances.length;p1++)
+                if(trackedEntityInstances1.length == 0)
+                {       
+                    //   console.log("No TrackedEntityInstance Exist");
+                }
+                else
+                {
+
+                for(var p1=0;p1<trackedEntityInstances1.length;p1++)
                 {	
-                    for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-                    {
-                    if(trackedEntityInstances[p1].attributes[kk].value==teivalue1)
-                        {
-                    var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
-                    var orgUnit1 = trackedEntityInstances[p1].orgUnit;
+                 //   for(var kk=0;kk<trackedEntityInstances1[p1].attributes.length;kk++)
+                //    {
+                //    if(trackedEntityInstances1[p1].attributes[kk].value==teivalue1)
+                //       {
+                    var trackEntityInstance=trackedEntityInstances1[p1].trackedEntityInstance;
+                    var orgUnit1 = trackedEntityInstances1[p1].orgUnit;
         		   
                     getresident_id(trackEntityInstance);
 
@@ -1159,7 +1192,6 @@ function callajax(){
                                 for(var keys in residentageentrypath)
 									{
 									var val1= residentageentrypath[keys];
-                                    }
                                 if(val1.hasOwnProperty(nameofdataelement))
                                 {	
 									
@@ -1170,8 +1202,11 @@ function callajax(){
                                         value:  valueofdataelement
                                     })
                                 }
-								else{}							                              
-                                }            
+								else{}
+                                    }							                              
+                                }
+
+                        event.dataValues = removeDuplicates(event.dataValues);            
 
 					$.ajax({
                             async: false,
@@ -1190,20 +1225,23 @@ function callajax(){
                             }
                         });                
                     }   
-                       residentageentrypath=[],resident_id_existall=[];	     
-					   }
+                       residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];	     
+					//   }
                                 /*else{
 										console.log("No TrackedEntityInstance Exist");
 										}*/
-										}           
+							//			}           
                                 }								                      		
                 }
+                residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];
 				}
 					}
+                }
                          else{		
 						 console.log("No Add Household member exist");
                                     
                          }
+                }
                     }
                     },
                 error: function(request, textStatus, errorThrown){
@@ -1215,7 +1253,7 @@ function callajax(){
             }
 }
 
-   function visit1(received_on_start,received_on_end)
+   function visit1(received_on_start,received_on_end,offset_value)
 				{
 		var update_data=[],backgroundvar=[];
         var def = $.Deferred();
@@ -1234,7 +1272,7 @@ function callajax(){
             }
             });
 			  
-			for(var offset_val=0;offset_val<parseInt(total_count);offset_val+=1000)
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
 
@@ -1256,7 +1294,14 @@ function callajax(){
             {
                 var formpath=data.objects[q].form;
                 var formvalue=formpath["@xmlns"];
-                var form_id=formvalue.split("/");					 
+                var form_id=formvalue.split("/");
+                var formtype =formpath["#type"];
+                if( formtype == 'system')
+                {
+                    console.log("System form exist");
+                }
+                else
+                {					 
 				if(form_id[4] =='55F4F616-2669-4EC9-AD60-049A79AF0A5F')
 				{
               var backgroundvariable_Path=formpath.background_variables;
@@ -1299,12 +1344,19 @@ function callajax(){
 					valueofdataelement5 = valueofdataelement4.substring(0,7);
 				  }
 		
+                if(trackedEntityInstances.length == 0)
+                {       
+                    //   console.log("No TrackedEntityInstance Exist");
+                }
+                else
+                {
+
                     for(var p1=0;p1<trackedEntityInstances.length;p1++)
 					{	
-                        for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-                        {
-                        if(trackedEntityInstances[p1].attributes[kk].value == householdvalue)
-                            {							
+                  //      for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
+                   //     {
+                   //     if(trackedEntityInstances[p1].attributes[kk].value == householdvalue)
+                    //        {							
 						   var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
 						   var orgUnit1 = trackedEntityInstances[p1].orgUnit;
 						   
@@ -2878,7 +2930,7 @@ function callajax(){
                                 }
                                 }
 
-                    event.dataValues = removeDuplicates(event.dataValues, "dataElement");
+                    event.dataValues = removeDuplicates(event.dataValues);
 
 					$.ajax({
                             async: false,
@@ -2896,13 +2948,15 @@ function callajax(){
                                 console.log("Event not created of Visit 1!");
                             }
                         });
-				    	update_data=[];			
-					 }
+				    	update_data=[],trackedEntityInstances=[],backgroundvar=[];			
+			//	 }
                                 /*else{
 										console.log("No TrackedEntityInstance Exist of Visit 1");
 										}*/
-                                        	}           
-                                }																
+                             //           	}           
+                                }
+                }
+                update_data=[],trackedEntityInstances=[],backgroundvar=[];																
 				////////////			
                 }
 				}
@@ -2910,6 +2964,7 @@ function callajax(){
                          else{		
 						 console.log("No Visit 1 exist");             
                          }
+                }
                     }
                     },
                 error: function(request, textStatus, errorThrown){
@@ -2921,7 +2976,7 @@ function callajax(){
             }       
 }
 
-function visit2(received_on_start,received_on_end)
+function visit2(received_on_start,received_on_end,offset_value)
 				{
 			var update_data=[],backgroundvar=[];
             var def = $.Deferred();
@@ -2940,7 +2995,7 @@ function visit2(received_on_start,received_on_end)
             }
             });
 			  
-			for(var offset_val=0;offset_val<parseInt(total_count);offset_val+=1000)
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
 
@@ -2962,7 +3017,14 @@ function visit2(received_on_start,received_on_end)
             {
                 var formpath=data.objects[q].form;
                 var formvalue=formpath["@xmlns"];
-                var form_id=formvalue.split("/");					 
+                var form_id=formvalue.split("/");
+                var formtype =formpath["#type"];
+                if( formtype == 'system')
+                {
+                    console.log("System form exist");
+                }
+                else
+                {					 
 				if(form_id[4] =='3C193B5B-5DE8-4F51-B4C9-AF6482231A66')
 				{
               var backgroundvariable_Path=formpath.background_variables;
@@ -3005,13 +3067,21 @@ function visit2(received_on_start,received_on_end)
 					valueofdataelement4 = valueofdataelement1[1];
 					valueofdataelement5 = valueofdataelement4.substring(0,7);
 				  }
+
+                if(trackedEntityInstances.length == 0)
+                {       
+                    //   console.log("No TrackedEntityInstance Exist");
+                   // debugger;
+                }
+                else
+                {
 								
-			for(var p1=0;p1<trackedEntityInstances.length;p1++)
+			    for(var p1=0;p1<trackedEntityInstances.length;p1++)
 					{	
-                        for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-                        {
-                        if(trackedEntityInstances[p1].attributes[kk].value == householdvalue)
-                            {							
+                //        for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
+                 //      {
+                 //      if(trackedEntityInstances[p1].attributes[kk].value == householdvalue)
+                  //         {							
 						   var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
 						   var orgUnit1 = trackedEntityInstances[p1].orgUnit;
 
@@ -4791,7 +4861,7 @@ function visit2(received_on_start,received_on_end)
                                 }
                                 }
 
-                    event.dataValues = removeDuplicates(event.dataValues, "dataElement");
+                    event.dataValues = removeDuplicates(event.dataValues);
 
 					$.ajax({
                             async: false,
@@ -4809,13 +4879,15 @@ function visit2(received_on_start,received_on_end)
                                 console.log("Event not created of Visit 2!");
                             }
                         });
-					    update_data=[];				
-                            }
+					    update_data=[],trackedEntityInstances=[],backgroundvar=[];				
+                      //      }
                                 /*else{
 										console.log("No TrackedEntityInstance Exist of Visit 2");
 										}*/
-                        }
-                    }									
+                     //   }
+                    }
+              }
+               update_data=[],trackedEntityInstances=[],backgroundvar=[];									
 				////////////			
                 }
 				}
@@ -4823,6 +4895,7 @@ function visit2(received_on_start,received_on_end)
                          else{		
 						 console.log("No Visit 2 exist");                                  
                          }
+                }
                     }
                     },
                 error: function(request, textStatus, errorThrown){
@@ -4834,7 +4907,7 @@ function visit2(received_on_start,received_on_end)
             }       
 }
 
-function visit3(received_on_start,received_on_end)
+function visit3(received_on_start,received_on_end,offset_value)
 				{
 			var update_data=[],backgroundvar=[];
             var def = $.Deferred();
@@ -4853,7 +4926,7 @@ function visit3(received_on_start,received_on_end)
             }
             });
 			  
-			for(var offset_val=0;offset_val<parseInt(total_count);offset_val+=1000)
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
 
@@ -4876,7 +4949,14 @@ function visit3(received_on_start,received_on_end)
             {
                 var formpath=data.objects[q].form;
                 var formvalue=formpath["@xmlns"];
-                var form_id=formvalue.split("/");					 
+                var form_id=formvalue.split("/");
+                var formtype =formpath["#type"];
+                if( formtype == 'system')
+                {
+                    console.log("System form exist");
+                }
+                else
+                {					 
 				if(form_id[4] =='aa04a8e61e5080b6f3b2f4aa5f142a5d1b9a11b5')
 				{
               var backgroundvariable_Path=formpath.background_variables;
@@ -4919,12 +4999,20 @@ function visit3(received_on_start,received_on_end)
 					valueofdataelement5 = valueofdataelement4.substring(0,7);
 				  }
 				
-			for(var p1=0;p1<trackedEntityInstances.length;p1++)
+                if(trackedEntityInstances.length == 0)
+                {       
+                    //   console.log("No TrackedEntityInstance Exist");
+                   // debugger;
+                }
+                else
+                {
+
+                for(var p1=0;p1<trackedEntityInstances.length;p1++)
 					{	
-                        for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-                        {
-                        if(trackedEntityInstances[p1].attributes[kk].value == householdvalue)
-                            {							
+             //           for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
+              //          {
+              //          if(trackedEntityInstances[p1].attributes[kk].value == householdvalue)
+               //             {							
 						   var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
 						   var orgUnit1 = trackedEntityInstances[p1].orgUnit;
 						   
@@ -6443,7 +6531,7 @@ function visit3(received_on_start,received_on_end)
                                 }
                                 }  
 
-                    event.dataValues = removeDuplicates(event.dataValues, "dataElement");
+                    event.dataValues = removeDuplicates(event.dataValues);
 
 					$.ajax({
                             async: false,
@@ -6461,13 +6549,15 @@ function visit3(received_on_start,received_on_end)
                                 console.log("Event not created of Visit 3!")
                             }
                         });
-					    update_data=[];				
-					  }	
+					    update_data=[],trackedEntityInstances=[],backgroundvar=[];				
+					//  }	
                                 /*else{
 										console.log("No TrackedEntityInstance Exist of Visit 3");
 										}*/
-                        }
-                    }											
+                    //   }
+                    }
+                }
+                update_data=[],trackedEntityInstances=[],backgroundvar=[];											
 				////////////			
                 }
 				}
@@ -6476,6 +6566,7 @@ function visit3(received_on_start,received_on_end)
 						 console.log("No Visit 3 exist");
                                     
                          }
+                }
 		
                      }
                     },
@@ -6488,20 +6579,10 @@ function visit3(received_on_start,received_on_end)
             }       
 }
 
-function updatehouseholdInfo(received_on_start,received_on_end){
-            var trackedEntityInstances=[];
-            $.ajax({
-                    async : false,
-                    type: "GET",
-                    url: "../../trackedEntityInstances.json?fields=trackedEntityInstance,orgUnit,attributes[attribute,value]&ouMode=ALL&program=Srb5XJoZXYP&skipPaging=true",
-                    success: function(data){		
-                    for(var k=0;k<data.trackedEntityInstances.length;k++){
-                        trackedEntityInstances.push(data.trackedEntityInstances[k])
-                    }	
-                },
-            });
-            var datevalue,orgunitcode,nameofdataelement1,nameofdataelement2,dataElementName,dataElementId,nameofdataelement,orgunitId,datevalue1,datevalue2,valueofdataelement,tei,teivalue,formname, gps,householdattributevalue;
-            var def = $.Deferred();
+function updatehouseholdInfo(received_on_start,received_on_end,offset_value){
+            
+        var datevalue,orgunitcode,nameofdataelement1,nameofdataelement2,dataElementName,dataElementId,nameofdataelement,orgunitId,datevalue1,datevalue2,valueofdataelement,tei,teivalue,formname, gps,householdattributevalue;
+        var def = $.Deferred();
 			  
 		var total_count;
         $.ajax({
@@ -6518,7 +6599,7 @@ function updatehouseholdInfo(received_on_start,received_on_end){
             }
             });
 			  
-			for(var offset_val=0;offset_val<parseInt(total_count);offset_val+=1000)
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
 
@@ -6544,6 +6625,13 @@ function updatehouseholdInfo(received_on_start,received_on_end){
                         var formpath=data.objects[q].form;
                         var formvalue=formpath["@xmlns"];
 						var form_id=formvalue.split("/");
+                        var formtype =formpath["#type"];
+                        if( formtype == 'system')
+                        {
+                            console.log("System form exist");
+                        }
+                        else
+                        {
                         	//Update household				
                         if(form_id[4] =='9196decaf61dfc6d6c0c0759116f85026e1900f4')
                          {
@@ -6559,6 +6647,8 @@ function updatehouseholdInfo(received_on_start,received_on_end){
                             datevalue1 = caseusercasepath["@date_modified"];
                             datevalue2 = datevalue1.split("T");
                             datevalue = datevalue2[0];
+
+                             gettrackentityInstance(teivalue);
 							
 						   
 						   if(formpath.household_consent_yes){
@@ -6633,15 +6723,22 @@ function updatehouseholdInfo(received_on_start,received_on_end){
                                 valueofdataelement4 = valueofdataelement1[1];
                                 valueofdataelement5 = valueofdataelement4.substring(0,7);
                               }
-							  
-                for(var p1=0;p1<trackedEntityInstances.length;p1++)
+
+				if(trackedEntityInstances1.length == 0)
+                {       
+                    //   console.log("No TrackedEntityInstance Exist");
+                }
+                else
+                {
+
+                for(var p1=0;p1<trackedEntityInstances1.length;p1++)
                 {	
-                    for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-                    {
-                    if(trackedEntityInstances[p1].attributes[kk].value==teivalue)
-                        {
-                    var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
-                    var orgUnit1 = trackedEntityInstances[p1].orgUnit;
+               //     for(var kk=0;kk<trackedEntityInstances1[p1].attributes.length;kk++)
+               //     {
+               //  if(trackedEntityInstances1[p1].attributes[kk].value==teivalue)
+                //       {
+                    var trackEntityInstance=trackedEntityInstances1[p1].trackedEntityInstance;
+                    var orgUnit1 = trackedEntityInstances1[p1].orgUnit;
                                             
                 var event = {
                     trackedEntityInstance: trackEntityInstance,
@@ -7143,7 +7240,9 @@ function updatehouseholdInfo(received_on_start,received_on_end){
 								else{}
 								}
                                 }
-                    }             
+                    }
+
+                    event.dataValues = removeDuplicates(event.dataValues);             
 
                         $.ajax({
                             async: false,
@@ -7161,19 +7260,22 @@ function updatehouseholdInfo(received_on_start,received_on_end){
                                 console.log("Update Household Event not added!");
                             }
                         });  
-						 householdconsentpath=[];householdlocationpath=[];householdattributevalue=[];householdconsentpath1=[];householdconsentpath2=[];householdconsentpath3=[];householdconsentpath4=[];       
-                        }
+						 householdconsentpath=[];householdlocationpath=[];householdattributevalue=[];householdconsentpath1=[];householdconsentpath2=[];householdconsentpath3=[];householdconsentpath4=[];trackedEntityInstances1=[];       
+                     //   }
 							/*else{
 										console.log("No TrackedEntityInstance Exist");
 										}*/
-										}           
+							//		}           
                                 }	
                          }
+                         householdconsentpath=[];householdlocationpath=[];householdattributevalue=[];householdconsentpath1=[];householdconsentpath2=[];householdconsentpath3=[];householdconsentpath4=[];trackedEntityInstances1=[];
                           }
+                        }
                          }	   
                          else{
                              console.log("No Update Household Exist");
                          }
+                        }
                 }
                 },
                 error: function(request, textStatus, errorThrown){
@@ -7185,19 +7287,9 @@ function updatehouseholdInfo(received_on_start,received_on_end){
 			}
 }
 
-function UpdatehouseholdMember(received_on_start,received_on_end)
+function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
 				{
-            var trackedEntityInstances=[];
-            $.ajax({
-                    async : false,
-                    type: "GET",
-                    url: "../../trackedEntityInstances.json?fields=trackedEntityInstance,orgUnit,attributes[attribute,value]&ouMode=ALL&program=Srb5XJoZXYP&skipPaging=true",
-                    success: function(data){		
-                    for(var k=0;k<data.trackedEntityInstances.length;k++){
-                        trackedEntityInstances.push(data.trackedEntityInstances[k])
-                    }	
-                },
-            });
+
         var residentageentrypath=[], resident_is_alive_path=[];
         var def = $.Deferred();
         var total_count;
@@ -7215,7 +7307,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end)
             }
             });
 			  
-			for(var offset_val=0;offset_val<parseInt(total_count);offset_val+=1000)
+			for(var offset_val=parseInt(offset_value);offset_val<parseInt(total_count);offset_val+=1000)
 			{
 		   var offset = offset_val;
 
@@ -7238,6 +7330,13 @@ function UpdatehouseholdMember(received_on_start,received_on_end)
                 var formpath=data.objects[q].form;
                 var formvalue=formpath["@xmlns"];
                 var form_id=formvalue.split("/");
+                var formtype =formpath["#type"];
+                if( formtype == 'system')
+                {
+                    console.log("System form exist");
+                }
+                else
+                {
 				if(form_id[4] =='67a197cfb37259d99bd5fd2f12f349b68623cf18')
 				{
 				if(formpath.case)
@@ -7251,6 +7350,8 @@ function UpdatehouseholdMember(received_on_start,received_on_end)
 				datevalue1 = caseusercasepath["@date_modified"];
 				datevalue2 = datevalue1.split("T");
 				datevalue = datevalue2[0];
+
+                 gettrackentityInstance(teivalue1);
                 
                 if(formpath.resident_is_alive)
                 {
@@ -7283,14 +7384,21 @@ function UpdatehouseholdMember(received_on_start,received_on_end)
 					valueofdataelement5 = valueofdataelement4.substring(0,7);
 				  }*/					
 				
-                for(var p1=0;p1<trackedEntityInstances.length;p1++)
+                if(trackedEntityInstances1.length == 0)
+                {       
+                    //   console.log("No TrackedEntityInstance Exist");
+                }
+                else
+                {
+
+                for(var p1=0;p1<trackedEntityInstances1.length;p1++)
                 {	
-                    for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-                    {
-                    if(trackedEntityInstances[p1].attributes[kk].value==teivalue1)
-                        {
-                    var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
-                    var orgUnit1 = trackedEntityInstances[p1].orgUnit;
+            //        for(var kk=0;kk<trackedEntityInstances1[p1].attributes.length;kk++)
+              //     {
+              //      if(trackedEntityInstances1[p1].attributes[kk].value==teivalue1)
+                //       {
+                    var trackEntityInstance=trackedEntityInstances1[p1].trackedEntityInstance;
+                    var orgUnit1 = trackedEntityInstances1[p1].orgUnit;
         		   
                     //getresident_id(trackEntityInstance);
 
@@ -7528,7 +7636,6 @@ function UpdatehouseholdMember(received_on_start,received_on_end)
                                 for(var keys in resident_is_alive_path)
 									{
 									var val1= resident_is_alive_path[keys];
-                                    }
                                 if(val1.hasOwnProperty(nameofdataelement))
                                 {	
 									
@@ -7540,10 +7647,10 @@ function UpdatehouseholdMember(received_on_start,received_on_end)
                                     })
                                 }
 								else{}
+                                    }
                                 for(var keys in residentageentrypath)
 									{
 									var val1= residentageentrypath[keys];
-                                    }
                                 if(val1.hasOwnProperty(nameofdataelement))
                                 {	
 									
@@ -7554,8 +7661,11 @@ function UpdatehouseholdMember(received_on_start,received_on_end)
                                         value:  valueofdataelement
                                     })
                                 }
-								else{}							                              
-                                }            
+								else{}
+                                    }							                              
+                                } 
+
+                    event.dataValues = removeDuplicates(event.dataValues);           
 
 					$.ajax({
                             async: false,
@@ -7574,13 +7684,15 @@ function UpdatehouseholdMember(received_on_start,received_on_end)
                             }
                         });                
                   //  }   
-                       residentageentrypath=[],resident_id_existall=[];	     
-					   }
+                       residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];	     
+					//   }
                                 /*else{
 										console.log("No TrackedEntityInstance Exist");
 										}*/
-										}           
-                                }								                      		
+							//			}           
+                                }
+                }
+                residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];								                      		
                 }
 				}
 					}
@@ -7588,6 +7700,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end)
 						 console.log("No Update Household member exist");
                                     
                          }
+                }
                     }
                     },
                 error: function(request, textStatus, errorThrown){
