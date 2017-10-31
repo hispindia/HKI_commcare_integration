@@ -22,9 +22,10 @@
 </head>
 <body>
 <div class="container-fluid">
-    <div class="row">
-	<div class="col-lg-*  custom">
-<b style="margin-left: 35%">Start Date :<input type="date" id ="start" required>End Date :<input type="date" id ="end"  required>Offset :<input type="text" id ="offset_val"  required></b> <br><br>
+<div class="row">
+<div class="col-lg-*  custom">
+<b style="margin-left: 35%">Start Date :<input type="date" id ="start" required>End Date :<input type="date" id ="end" required>
+Offset :<input type="text" id ="offset_val" required></b> <br><br>
 <button onClick="Import()" id="Import" style="margin-left: 45%">Start Importing Data</button>
 
 </div>
@@ -32,6 +33,7 @@
 </div>		
 </body>
 <script type="text/javascript">
+//Loading all Org units//
 var orgunit_code=[];
     $.ajax({
             async : false,
@@ -43,6 +45,7 @@ var orgunit_code=[];
                 }                         
             },
         });
+//Loading all dataElements//
 var dataElements=[];
     $.ajax({
         async : false,
@@ -152,21 +155,21 @@ function gettrackentityInstance(teivalue1)
                     }	
                 },
             });
-}	
+}
+//Checking for duplicacy//
 function removeDuplicates(arr) {
     var new_arr=[],index=0;   
     for(var i=0;i<arr.length;i++)
     {
         if((i+1)<arr.length)
         {
-                if(arr[i].dataElement==arr[i+1].dataElement)
-                {
-                    index=i;
-                    arr.splice(index,1);
-                }
+            if(arr[i].dataElement==arr[i+1].dataElement)
+            {
+                index=i;
+                arr.splice(index,1);
+            }
         }        
     }
-    //console.log(arr);
     return arr;    
 }
 
@@ -179,7 +182,6 @@ function Import(){
         var received_on_start = document.getElementById("start").value;
         var received_on_end = document.getElementById("end").value;
         var offset_value = document.getElementById("offset_val").value;
-
 
        var total_count;
         $.ajax({
@@ -210,7 +212,6 @@ function Import(){
                 return [ date.getFullYear(), mnth, day ].join("-");
             };
             var urldate = convert();
-          //  alert(urldate);
 
         callajax();
         function callajax(){
@@ -238,23 +239,20 @@ function Import(){
                         }
                         else
                         {
-                        	//Register household				
+                        	//Register household form//				
                         if(form_id[4] =='DEE6202A-0893-4874-B96D-F2C6F3FC2179')
                          {
                         if(formpath.case){  
-						//console.log(@case_id+"@case_id");
-                          casee= formpath.case;
-						 
+                          casee= formpath.case;		 
                            len = Object.keys(casee).length;
                          if(len>0){
-                            //var casepath= formpath.case;
                              caseusercasepath = formpath.case                 
                             teivalue = caseusercasepath["@case_id"];
                             datevalue1 = caseusercasepath["@date_modified"];
                             datevalue2 = datevalue1.split("T");
                             datevalue = datevalue2[0];
 							
-						   
+						   //For getting the paths as in commcare//
 						   if(formpath.household_consent_yes){
                                household_value1 = formpath.household_consent_yes;	   
 							   householdconsentpath.push(household_value1);
@@ -334,6 +332,7 @@ function Import(){
                                     {
                                         orgunitId =orgunit_code[p1].id;
 
+                                    //For Register and Enrollment//
                                          var teienroll =  {
                                         "trackedEntity": "MCPQUTHX1Ze",
                                         "orgUnit": orgunitId,
@@ -371,7 +370,7 @@ function Import(){
                                     }
                                 }                         
                             
-                    
+               //Payload for Register Household Event//     
                 var event = {
                     trackedEntityInstance: tei,
                     orgUnit: orgunitId,
@@ -387,7 +386,7 @@ function Import(){
                     dataValues:[]
                     };
 
-                    
+                    //For fetching the dataElements and compairing their values//
                     for(var p=0;p<dataElements.length;p++){
 
                             dataElementName =dataElements[p].name;
@@ -906,6 +905,7 @@ function Import(){
             });
 }
 			}
+            //calling out other functions for different forms//
             addhouseholdMember(received_on_start,received_on_end,offset_value);
             visit1(received_on_start,received_on_end,offset_value);
             visit2(received_on_start,received_on_end,offset_value);
@@ -974,15 +974,16 @@ function callajax(){
 			  var casee= formpath.case;
 			  var len = Object.keys(casee).length;
 			  if(len>0){
-				//var casepath= formpath.case;
 				var caseusercasepath = formpath.case;
 				var teivalue1 = caseusercasepath["@case_id"];
 				datevalue1 = caseusercasepath["@date_modified"];
 				datevalue2 = datevalue1.split("T");
 				datevalue = datevalue2[0];
 
+                //For getting the tei and org unit of the registered event//
                 gettrackentityInstance(teivalue1);
-      
+                
+                 //For getting the paths as in commcare//
 				 if(formpath.resident_age_entry){
 				   residentageentry_value1 = formpath.resident_age_entry;	   
 				   residentageentrypath.push(residentageentry_value1);
@@ -1013,21 +1014,20 @@ function callajax(){
 
                 for(var p1=0;p1<trackedEntityInstances1.length;p1++)
                 {	
-                 //   for(var kk=0;kk<trackedEntityInstances1[p1].attributes.length;kk++)
-                //    {
-                //    if(trackedEntityInstances1[p1].attributes[kk].value==teivalue1)
-                //       {
                     var trackEntityInstance=trackedEntityInstances1[p1].trackedEntityInstance;
                     var orgUnit1 = trackedEntityInstances1[p1].orgUnit;
         		   
+                    //For checking if the trackEntityInstance exist for the member//
                     getresident_id(trackEntityInstance);
 
+                    //For checking if the member already exist//
                         if(resident_id_existall.indexOf(resident_id_curr_val) >-1)
                         {
                                 console.log("Event household member already exist! res_id:" +resident_id_curr_val,"tei:"+trackEntityInstance);
                         }
                         else{
                     
+                    //Payload of Add Household Member//
 						var event = {
 						trackedEntityInstance: trackEntityInstance,
 						orgUnit: orgUnit1,
@@ -1042,7 +1042,8 @@ function callajax(){
 						},
 						dataValues:[]
 						};
-									
+
+                         //For fetching the dataElements and compairing their values//			
                         for(var p=0;p<dataElements.length;p++){
 
                             dataElementName =dataElements[p].name;
@@ -1252,9 +1253,10 @@ function callajax(){
                                     }							                              
                                 }
 
+                        //Checking for duplicacy//
                         event.dataValues = removeDuplicates(event.dataValues);            
-
-					$.ajax({
+                        //Posting the event//
+					        $.ajax({
                             async: false,
                             type: "POST",
                             dataType: "json",
@@ -1271,12 +1273,7 @@ function callajax(){
                             }
                         });                
                     }   
-                       residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];	     
-					//   }
-                                /*else{
-										console.log("No TrackedEntityInstance Exist");
-										}*/
-							//			}           
+                       residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];	              
                                 }								                      		
                 }
                 residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];
@@ -1347,13 +1344,15 @@ function callajax(){
                   //  console.log("System form exist");
                 }
                 else
-                {					 
+                {	
+                  //Visit 1 checklist//				 
 				if(form_id[4] =='55F4F616-2669-4EC9-AD60-049A79AF0A5F')
 				{
               var backgroundvariable_Path=formpath.background_variables;
               backgroundvar.push(backgroundvariable_Path);
               var householdvalue=backgroundvariable_Path["household_id"];
 
+              //For getting the tei and org unit of the registered event of this checklist//
               gettrackentity(householdvalue);
 
 				if(formpath.case)
@@ -1367,6 +1366,7 @@ function callajax(){
 				datevalue2 = datevalue1.split("T");
 				datevalue = datevalue2[0];
 
+                 //For getting the paths as in commcare//
                 if(caseusercasepath.update){
                    update_data_value1 = caseusercasepath.update;	   
 				   update_data.push(update_data_value1);
@@ -1398,14 +1398,11 @@ function callajax(){
                 {
 
                     for(var p1=0;p1<trackedEntityInstances.length;p1++)
-					{	
-                  //      for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-                   //     {
-                   //     if(trackedEntityInstances[p1].attributes[kk].value == householdvalue)
-                    //        {							
+					{							
 						   var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
 						   var orgUnit1 = trackedEntityInstances[p1].orgUnit;
-						   
+
+                        //Payload for checklist event//   
 						var event = {
 						trackedEntityInstance: trackEntityInstance,
 						orgUnit: orgUnit1,
@@ -1421,6 +1418,7 @@ function callajax(){
 						dataValues:[]
 						};
 
+                        //For fetching dataElements and compairing their values//
                         for(var p=0;p<dataElements.length;p++){
 
                             dataElementName =dataElements[p].name;
@@ -1459,13 +1457,9 @@ function callajax(){
 
 
                                 if(nameofdataelement == 'resident_mother_mostrecent_FCHVinteraction' || dataelement_name == 'resident_mother_mostrecent_FCHVinteraction')
-                                {
-
-                                }
+                                { }
                                 else if(nameofdataelement == 'resident_mother_mostrecent_FCHVinteraction_pnc' || dataelement_name == 'resident_mother_mostrecent_FCHVinteraction_pnc')
-                                {
-
-                                }
+                                { }
 								else if(nameofdataelement == 'visit_one_mother_currently_available' || dataelement_name == 'visit_one_mother_currently_available' || dataelement_name1 == 'visit_one_mother_currently_available')
                                 {  
                                     for(var keys in update_data )
@@ -2975,7 +2969,8 @@ function callajax(){
                                     }
                                 }
                                 }
-
+                    
+                    //Checking for duplicacy//
                     event.dataValues = removeDuplicates(event.dataValues);
 
 					$.ajax({
@@ -2994,16 +2989,10 @@ function callajax(){
                                 console.log("Event not created of Visit 1!");
                             }
                         });
-				    	update_data=[],trackedEntityInstances=[],backgroundvar=[];			
-			//	 }
-                                /*else{
-										console.log("No TrackedEntityInstance Exist of Visit 1");
-										}*/
-                             //           	}           
+				    	update_data=[],trackedEntityInstances=[],backgroundvar=[];         
                                 }
                 }
-                update_data=[],trackedEntityInstances=[],backgroundvar=[];																
-				////////////			
+                update_data=[],trackedEntityInstances=[],backgroundvar=[];			
                 }
 				}
 					}
@@ -3070,13 +3059,15 @@ function visit2(received_on_start,received_on_end,offset_value)
                  //   console.log("System form exist");
                 }
                 else
-                {					 
+                {
+                  //Visit 2 checklist//					 
 				if(form_id[4] =='3C193B5B-5DE8-4F51-B4C9-AF6482231A66')
 				{
               var backgroundvariable_Path=formpath.background_variables;
               backgroundvar.push(backgroundvariable_Path);
               var householdvalue=backgroundvariable_Path["household_id"];
 
+              //For getting the tei and org unit of the registered event of this checklist//
               gettrackentity(householdvalue);
 
 				if(formpath.case)
@@ -3084,13 +3075,13 @@ function visit2(received_on_start,received_on_end,offset_value)
 			  var casee= formpath.case;
 			  var len = Object.keys(casee).length;
 			  if(len>0){
-				//var casepath= formpath.case;
 				var caseusercasepath = formpath.case;
 				var teivalue1 = caseusercasepath["@case_id"];
 				datevalue1 = caseusercasepath["@date_modified"];
 				datevalue2 = datevalue1.split("T");
 				datevalue = datevalue2[0];
 
+                 //For getting the paths as in commcare//
                 if(caseusercasepath.update){
                    update_data_value1 = caseusercasepath.update;	   
 				   update_data.push(update_data_value1);
@@ -3117,20 +3108,16 @@ function visit2(received_on_start,received_on_end,offset_value)
                 if(trackedEntityInstances.length == 0)
                 {       
                     //   console.log("No TrackedEntityInstance Exist");
-                   // debugger;
                 }
                 else
                 {
 								
 			    for(var p1=0;p1<trackedEntityInstances.length;p1++)
-					{	
-                //        for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-                 //      {
-                 //      if(trackedEntityInstances[p1].attributes[kk].value == householdvalue)
-                  //         {							
-						   var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
-						   var orgUnit1 = trackedEntityInstances[p1].orgUnit;
+					{							
+                        var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
+                        var orgUnit1 = trackedEntityInstances[p1].orgUnit;
 
+                        //Payload for Visit 2 checklist//
 						var event = {
 						trackedEntityInstance: trackEntityInstance,
 						orgUnit: orgUnit1,
@@ -3146,6 +3133,7 @@ function visit2(received_on_start,received_on_end,offset_value)
 						dataValues:[]
 						};
 
+                        //For fetching dataElements and compairing their values//
                         for(var p=0;p<dataElements.length;p++){
 
                             dataElementName =dataElements[p].name;
@@ -3173,24 +3161,17 @@ function visit2(received_on_start,received_on_end,offset_value)
                                     var jj=key;
                                     if(key == nameofdataelement || key == dataelement_name || key == dataelement_name1)
                                     {
-                                       //console.log(key);
                                         valueofdataelement=backgroundvariable_Path[key];
                                         event.dataValues.push({
                                             dataElement: dataElementId,
                                             value:  valueofdataelement
                                         })
                                     }
-
                                 }
-
                                 if(nameofdataelement == 'resident_mother_mostrecent_FCHVinteraction' || dataelement_name == 'resident_mother_mostrecent_FCHVinteraction')
-                                {
-
-                                }
+                                { }
                                 else if(nameofdataelement == 'resident_mother_mostrecent_FCHVinteraction_pnc' || dataelement_name == 'resident_mother_mostrecent_FCHVinteraction_pnc')
-                                {
-
-                                }
+                                { }
                                  else if(nameofdataelement == 'visit_two_child_currently_available' || dataelement_name == 'visit_two_child_currently_available' || dataelement_name1 == 'visit_two_child_currently_available')
                                  {  
                                     for(var keys in update_data )
@@ -4906,7 +4887,8 @@ function visit2(received_on_start,received_on_end,offset_value)
                                     }
                                 }
                                 }
-
+                    
+                    //Checking for duplicacy//
                     event.dataValues = removeDuplicates(event.dataValues);
 
 					$.ajax({
@@ -4925,16 +4907,10 @@ function visit2(received_on_start,received_on_end,offset_value)
                                 console.log("Event not created of Visit 2!");
                             }
                         });
-					    update_data=[],trackedEntityInstances=[],backgroundvar=[];				
-                      //      }
-                                /*else{
-										console.log("No TrackedEntityInstance Exist of Visit 2");
-										}*/
-                     //   }
+					    update_data=[],trackedEntityInstances=[],backgroundvar=[];	
                     }
               }
-               update_data=[],trackedEntityInstances=[],backgroundvar=[];									
-				////////////			
+               update_data=[],trackedEntityInstances=[],backgroundvar=[];	
                 }
 				}
 					}
@@ -5002,13 +4978,15 @@ function visit3(received_on_start,received_on_end,offset_value)
                  //   console.log("System form exist");
                 }
                 else
-                {					 
+                {
+                  //For Visit 3 checklist//					 
 				if(form_id[4] =='aa04a8e61e5080b6f3b2f4aa5f142a5d1b9a11b5')
 				{
               var backgroundvariable_Path=formpath.background_variables;
               backgroundvar.push(backgroundvariable_Path);
               var householdvalue=backgroundvariable_Path["household_id"];
 
+            //For getting the tei and org unit of the registered event of this checklist//          
               gettrackentity(householdvalue);
 
 				if(formpath.case)
@@ -5022,6 +5000,7 @@ function visit3(received_on_start,received_on_end,offset_value)
 				datevalue2 = datevalue1.split("T");
 				datevalue = datevalue2[0];
 
+                 //For getting the paths as in commcare//
                 if(caseusercasepath.update){
                    update_data_value1 = caseusercasepath.update;	   
 				   update_data.push(update_data_value1);
@@ -5048,20 +5027,16 @@ function visit3(received_on_start,received_on_end,offset_value)
                 if(trackedEntityInstances.length == 0)
                 {       
                     //   console.log("No TrackedEntityInstance Exist");
-                   // debugger;
                 }
                 else
                 {
 
                 for(var p1=0;p1<trackedEntityInstances.length;p1++)
-					{	
-             //           for(var kk=0;kk<trackedEntityInstances[p1].attributes.length;kk++)
-              //          {
-              //          if(trackedEntityInstances[p1].attributes[kk].value == householdvalue)
-               //             {							
+					{					
 						   var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
 						   var orgUnit1 = trackedEntityInstances[p1].orgUnit;
-						   
+
+                        //Payload for Visit 3 chcklist//  
 						var event = {
 						trackedEntityInstance: trackEntityInstance,
 						orgUnit: orgUnit1,
@@ -5077,6 +5052,7 @@ function visit3(received_on_start,received_on_end,offset_value)
 						dataValues:[]
 						};
 
+                        //For fetching and compairing dataElements//
                         for(var p=0;p<dataElements.length;p++){
 
                             dataElementName =dataElements[p].name;
@@ -5111,17 +5087,11 @@ function visit3(received_on_start,received_on_end,offset_value)
                                             value:  valueofdataelement
                                         })
                                     }
-
                                 }
-
                                 if(nameofdataelement == 'resident_mother_mostrecent_FCHVinteraction_6to23' || dataelement_name == 'resident_mother_mostrecent_FCHVinteraction_6to23')
-                                {
-
-                                }
+                                { }
                                 else if(nameofdataelement == 'resident_mother_mostrecent_FCHVinteraction_pnc' || dataelement_name == 'resident_mother_mostrecent_FCHVinteraction_pnc')
-                                {
-
-                                }
+                                { }
 								 else if(nameofdataelement == 'visit_three_mother_currently_available' || dataelement_name == 'visit_three_mother_currently_available' || dataelement_name1 == 'visit_three_mother_currently_available')
                                 {  
                                     for(var keys in update_data )
@@ -6678,32 +6648,29 @@ function updatehouseholdInfo(received_on_start,received_on_end,offset_value){
                         }
                         else
                         {
-                        	//Update household				
+                        	//Update household Info Form//				
                         if(form_id[4] =='9196decaf61dfc6d6c0c0759116f85026e1900f4')
                          {
                         if(formpath.case){  
-						//console.log(@case_id+"@case_id");
                           casee= formpath.case;
-						 
                            len = Object.keys(casee).length;
                          if(len>0){
-                            //var casepath= formpath.case;
                              caseusercasepath = formpath.case                 
                             teivalue = caseusercasepath["@case_id"];
                             datevalue1 = caseusercasepath["@date_modified"];
                             datevalue2 = datevalue1.split("T");
                             datevalue = datevalue2[0];
 
+                            //For getting the tei and org unit of the First registered event//
                              gettrackentityInstance(teivalue);
 							
-						   
+						    //For getting the paths as in commcare//
 						   if(formpath.household_consent_yes){
                                household_value1 = formpath.household_consent_yes;	   
 							   householdconsentpath.push(household_value1);
 							   
 							   for(var w=0;w<householdconsentpath.length;w++)
-								{
-								
+								{		
 								if(householdconsentpath[w].equitytool_variables)
 								{
 								 householdconsentpath1_value = householdconsentpath[w].equitytool_variables;
@@ -6751,11 +6718,10 @@ function updatehouseholdInfo(received_on_start,received_on_end,offset_value){
 								{
 								 orgunitcode =householdlocationpath[w].level2;
 								householdattributevalue =householdlocationpath[w].household_id;
-								}
-													
+								}								
 							}
   
-                               gps = formpath.household_gps_coordinates_update;					   
+                             gps = formpath.household_gps_coordinates_update;					   
                               if(gps == "" || gps == undefined)
 							  {
 							  valueofdataelement3="";
@@ -6779,13 +6745,10 @@ function updatehouseholdInfo(received_on_start,received_on_end,offset_value){
 
                 for(var p1=0;p1<trackedEntityInstances1.length;p1++)
                 {	
-               //     for(var kk=0;kk<trackedEntityInstances1[p1].attributes.length;kk++)
-               //     {
-               //  if(trackedEntityInstances1[p1].attributes[kk].value==teivalue)
-                //       {
                     var trackEntityInstance=trackedEntityInstances1[p1].trackedEntityInstance;
                     var orgUnit1 = trackedEntityInstances1[p1].orgUnit;
-                                            
+
+                 //Payload for Update household event//                           
                 var event = {
                     trackedEntityInstance: trackEntityInstance,
                     orgUnit: orgUnit1,
@@ -6800,8 +6763,8 @@ function updatehouseholdInfo(received_on_start,received_on_end,offset_value){
                     },
                     dataValues:[]
                     };
-
                     
+                    //For fetching and compairing the values of dataElements//
                     for(var p=0;p<dataElements.length;p++){
 
                             dataElementName =dataElements[p].name;
@@ -6824,17 +6787,14 @@ function updatehouseholdInfo(received_on_start,received_on_end,offset_value){
                             nameofdataelement2 = nameofdataelement1.split("-");
                             nameofdataelement = nameofdataelement2[0];
 
-
                                 if(nameofdataelement == 'household_gps_request_update')
-                                {                                     
-                                    }
+                                {   }
                                 else if(nameofdataelement == 'household_caste' || dataelement_name == 'household_caste' || dataelement_name1 == 'household_caste')
                                 {
 								for(var w=0;w<householdconsentpath3.length;w++)
 								{
 								 valueofdataelement =householdconsentpath3[w].household_caste;
-								}
-								                         
+								}                         
                                     var attributevaluepath = dataElements[p].attributeValues;
                                     for(var t=0;t<attributevaluepath.length;t++){
                                     if(attributevaluepath[t].value == valueofdataelement)
@@ -7335,7 +7295,6 @@ function updatehouseholdInfo(received_on_start,received_on_end,offset_value){
 
 function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
 				{
-
         var residentageentrypath=[], resident_is_alive_path=[];
         var def = $.Deferred();
         var total_count;
@@ -7383,6 +7342,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                 }
                 else
                 {
+                    //Update household Member form//
 				if(form_id[4] =='67a197cfb37259d99bd5fd2f12f349b68623cf18')
 				{
 				if(formpath.case)
@@ -7397,8 +7357,10 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
 				datevalue2 = datevalue1.split("T");
 				datevalue = datevalue2[0];
 
+                //For getting the tei and org unit of the registered household event//
                  gettrackentityInstance(teivalue1);
                 
+                 //For getting the paths as in commcare//
                 if(formpath.resident_is_alive)
                 {
                     resident_is_alive_value = formpath.resident_is_alive;	   
@@ -7412,23 +7374,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                 residentageentry_value1 = resident_is_alive_path[w].resident_age_entry;	   
                 residentageentrypath.push(residentageentry_value1);
                 }
-                }				
-			
-                //resident_id_curr_val = formpath.resident_id;
-				/*var gps_coordinates=formpath.gps_coordinates;
-				if(gps_coordinates == "" || gps_coordinates == undefined)
-				  {
-				  valueofdataelement3="";
-				  valueofdataelement5="";
-				  }
-				  else{
-					valueofdataelement1 = gps_coordinates.split(" ");
-					valueofdataelement2 = valueofdataelement1[0];
-					valueofdataelement3 = valueofdataelement2.substring(0,7);
-
-					valueofdataelement4 = valueofdataelement1[1];
-					valueofdataelement5 = valueofdataelement4.substring(0,7);
-				  }*/					
+                }								
 				
                 if(trackedEntityInstances1.length == 0)
                 {       
@@ -7439,20 +7385,9 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
 
                 for(var p1=0;p1<trackedEntityInstances1.length;p1++)
                 {	
-            //        for(var kk=0;kk<trackedEntityInstances1[p1].attributes.length;kk++)
-              //     {
-              //      if(trackedEntityInstances1[p1].attributes[kk].value==teivalue1)
-                //       {
+    
                     var trackEntityInstance=trackedEntityInstances1[p1].trackedEntityInstance;
                     var orgUnit1 = trackedEntityInstances1[p1].orgUnit;
-        		   
-                    //getresident_id(trackEntityInstance);
-
-                       /* if(resident_id_existall.indexOf(resident_id_curr_val) >-1)
-                        {
-                                console.log("Event Update household member already exist! res_id:" +resident_id_curr_val,"tei:"+trackEntityInstance);
-                        }
-                        else{*/
                     
 						var event = {
 						trackedEntityInstance: trackEntityInstance,
@@ -7463,12 +7398,11 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
 						status : "ACTIVE",
 						storedBy : "admin",
 						coordinate: {
-						//latitude: parseFloat(valueofdataelement3),
-						//longitude: parseFloat(valueofdataelement5)
 						},
 						dataValues:[]
 						};
-									
+
+                        //For fetching and compairing the values of dataElements//		
                         for(var p=0;p<dataElements.length;p++){
 
                             dataElementName =dataElements[p].name;
@@ -7490,8 +7424,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                             nameofdataelement1 = dataElementName.substring(dataElementName.lastIndexOf("/") + 1, dataElementName.length);
                             nameofdataelement2 = nameofdataelement1.split("-");
                             nameofdataelement = nameofdataelement2[0];
-
-                               								
+                      								
 								 if(nameofdataelement == 'resident_location' || dataelement_name == 'resident_location' || dataelement_name1 == 'resident_location')
                                 {
                                     valueofdataelement =formpath.resident_location;
@@ -7711,6 +7644,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                                     }							                              
                                 } 
 
+                    //For checking duplicacy//
                     event.dataValues = removeDuplicates(event.dataValues);           
 
 					$.ajax({
@@ -7728,14 +7662,8 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                                 console.log("Update Member not Event with UID:",trackEntityInstance);
                                 console.log("Event not created of Update household member!")
                             }
-                        });                
-                  //  }   
-                       residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];	     
-					//   }
-                                /*else{
-										console.log("No TrackedEntityInstance Exist");
-										}*/
-							//			}           
+                        });                  
+                       residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];         
                                 }
                 }
                 residentageentrypath=[],resident_id_existall=[],trackedEntityInstances1=[];								                      		
@@ -7743,8 +7671,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
 				}
 					}
                          else{		
-						 console.log("No Update Household member exist");
-                                    
+						 console.log("No Update Household member exist");                    
                          }
                 }
                     }
@@ -7804,7 +7731,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                         }
                         else
                         {
-                        //FS Activity Reporting				
+                        //FS Activity Reporting//				
                         if(form_id[4] =='6B97DEF7-D215-4B29-B2DB-EE1DEF300790')
                          {
                         if(formpath.meta){  
@@ -7830,8 +7757,10 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                             timeval3 = timeval2.split(".");
                             timevalue = timeval3[0];
 
+                            //For getting the tei and org unit of the registered event//
                             FSgettrackentity(userID);
 
+                             //For getting the paths as in commcare//
                                if(formpath.m1000days){
                                 m1000days_value1 = formpath.m1000days;	   
                                 m1000days_value1_path.push(m1000days_value1);
@@ -7857,6 +7786,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                                 referral_value1_path.push(referral_value1);
                                 }
 
+                        //For Register and Enrollment of new forms//
                         if(FStrackedEntityInstances.length == 0)
                         {       
                             //console.log("No TrackedEntityInstance Exist");
@@ -7902,7 +7832,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
 
                                 }
                             }                                                        
-                    
+                    //Payload of event//
                     var event = {
                         trackedEntityInstance: tei,
                         orgUnit: orgunitId,
@@ -7915,16 +7845,14 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                         };
 
                         createEvent(tei);
-
                          }
 
+                         //If Enrollment already done//
                          else
                             {
-
                             for(var p1=0;p1<FStrackedEntityInstances.length;p1++)
                             {								
                                 var trackEntityInstance=FStrackedEntityInstances[p1].trackedEntityInstance;
-                               // var orgUnit1 = FStrackedEntityInstances[p1].orgUnit;
 
                                for(var p1=0;p1<orgunit_code.length;p1++){
                                 if(orgunit_code[p1].code ==orgunitcode)
@@ -7948,6 +7876,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                             }
                             }
 
+                //For fetching and compairing the values of dataElements// 
                 function createEvent(gotTei){
 
                     for(var p=0;p<dataElements.length;p++){
@@ -7999,8 +7928,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                                     }       
                                     }                                    
                                     }                               
-                                }
-                                 
+                                }                        
                                 else{
                                  if (formpath.hasOwnProperty(nameofdataelement)){
                                     valueofdataelement = formpath[nameofdataelement];
@@ -8057,7 +7985,6 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                                 }
 								else{}
 								}
-
 								for(var keys in others_value1_path )
 									{
 									var val1= others_value1_path[keys];
@@ -8071,7 +7998,6 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                                 }
 								else{}
 								}
-
 								for(var keys in referral_value1_path)
 									{
 									var val1= referral_value1_path[keys];
@@ -8090,6 +8016,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                                 }
                     }
                     
+                    //For checking if the already exist event is getting updated//
                     FSgetresident_id(gotTei,orgunitId,datevalue,timevalue);
                     
                     if(prevdataValues.length == 0 && flag == false)
@@ -8114,29 +8041,27 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                     else if(flag == true)
                     { }
                     else{
+                        //update the existing already created event by new values//
 
-                            prevdataValues.splice(0, prevdataValues.length, event.dataValues)
+                        prevdataValues.splice(0, prevdataValues.length, event.dataValues);
 
-                            //////////////////update the existing already created event by new values/////////////////
-
-                             $.ajax({
-                            async: false,
-                            type: "PUT",
-                            dataType: "json",
-                            contentType: "application/json",
-                            url: '../api/events/'+eventID,
-                            data: JSON.stringify(event),
-                            success: function (response) {
-                                console.log("FS Reporting Event updated with UID");
-                                console.log("FS Reporting Event update added!"); 
-                            },
-                            error: function (response) {
-                                console.log("Event not updated with UID:");
-                                console.log("FS Reporting Event update not added!");
-                            }
+                            $.ajax({
+                        async: false,
+                        type: "PUT",
+                        dataType: "json",
+                        contentType: "application/json",
+                        url: '../api/events/'+eventID,
+                        data: JSON.stringify(event),
+                        success: function (response) {
+                            console.log("FS Reporting Event updated with UID");
+                            console.log("FS Reporting Event update added!"); 
+                        },
+                        error: function (response) {
+                            console.log("Event not updated with UID:");
+                            console.log("FS Reporting Event update not added!");
+                        }
                         });  
-                    }          
-                 
+                    }      
 						 m1000days_value1_path=[],meeting_value1_path=[],observation_value1_path=[],others_value1_path=[],referral_value1_path=[];
                             }
                             FStrackedEntityInstances=[],prevdataValues=[],flag = false;
@@ -8207,7 +8132,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                         }
                         else
                         {
-                        //FCHV Visit			
+                        //FCHV Visit Checklist//			
                         if(form_id[4] =='3CA424B7-6082-4BEC-9D2E-5E2789E26A9C')
                          {
                             var backgroundvariable_Path=formpath.background_variables;
@@ -8215,7 +8140,8 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                             var householdvalue=backgroundvariable_Path["household_id"];
                             orgunitcode = backgroundvariable_Path.level2_code;
                             
-                            gettrackentity(householdvalue);
+                        //For getting tei and org unit values of the registered event from the Household Program//
+                        gettrackentity(householdvalue);
 
                         if(formpath.case)
                             {
@@ -8228,17 +8154,15 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                             datevalue2 = datevalue1.split("T");
                             datevalue = datevalue2[0];
 
-
+                            //for getting the paths as in commcare//
                             if(formpath.fchv_questions){
                             fchv_questions1 = formpath.fchv_questions;
                             fchv_questions_path.push(fchv_questions1);
-
-                            
+      
                             if(fchv_questions1.activity_questions){
                             activity_questions1 = fchv_questions1.activity_questions;	   
                             activity_questions_path.push(activity_questions1);
-                                                    
-                 
+                                                       
                             if(activity_questions1.question10){
                             question10_1 = activity_questions1.question10;
                             question10_path.push(question10_1);
@@ -8261,8 +8185,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                             fchv_hfpbgroups_questions1 = fchv_hfpvdc_questions1.fchv_hfpbgroups_questions;
                             fchv_hfpbgroups_questions_path.push(fchv_hfpbgroups_questions1);
                             }                      
-                            }
-                            
+                            }             
                             }
                             
                             if(fchv_questions1.suaahara_practices_questions){
@@ -8319,11 +8242,10 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                             if(trackedEntityInstances.length == 0)
                             {       
                             //   console.log("No TrackedEntityInstance Exist");
-                            // debugger;
                             }
                             else
                             { 
-
+                        //For Enrollment in the new program//
                           for(var p1=0;p1<trackedEntityInstances.length;p1++)
 					        {	
                 				
@@ -8370,7 +8292,7 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                               }
 
                 function createEvent(){
-
+                    //For fetching and compairing the values of dataElements//
                     for(var p=0;p<dataElements.length;p++){
 
                             dataElementName =dataElements[p].name;
@@ -9815,8 +9737,9 @@ function UpdatehouseholdMember(received_on_start,received_on_end,offset_value)
                                 }
                     }  
 
+                    //Checking for duplicacy//
                     event.dataValues = removeDuplicates(event.dataValues);           
-
+                    //Posting the event//
                         $.ajax({
                             async: false,
                             type: "POST",
@@ -9906,7 +9829,7 @@ function VMFVisit(received_on_start,received_on_end,offset_value)
                         }
                         else
                         {
-                        //VMF Visit			
+                        //VMF Visit	Checklist//		
                         if(form_id[4] =='1C91BDFF-274F-4418-B675-294BAA5425C2')
                          {
                             var backgroundvariable_Path=formpath.background_variables;
@@ -9914,7 +9837,8 @@ function VMFVisit(received_on_start,received_on_end,offset_value)
                             var householdvalue=backgroundvariable_Path["household_id"];
                             orgunitcode = backgroundvariable_Path.level2_code;
                             
-                            gettrackentity(householdvalue);
+                        //For getting the tei and org unit of the registered event from the Household program//
+                        gettrackentity(householdvalue);
 
                         if(formpath.case)
                             {
@@ -9927,7 +9851,7 @@ function VMFVisit(received_on_start,received_on_end,offset_value)
                             datevalue2 = datevalue1.split("T");
                             datevalue = datevalue2[0];
 
-
+                            //For getting the paths as in commcare//
                             if(formpath.vmf_checklist_questions){
                             vmf_checklist_questions1 = formpath.vmf_checklist_questions;
                             vmf_checklist_questions1_path.push(vmf_checklist_questions1);
@@ -9936,7 +9860,6 @@ function VMFVisit(received_on_start,received_on_end,offset_value)
                             homestead_gardening1 = vmf_checklist_questions1.homestead_gardening;	   
                             homestead_gardening1_path.push(homestead_gardening1);
                             
-
                             if(homestead_gardening1.garden_additional_questions){
                             garden_additional_questions1 = homestead_gardening1.garden_additional_questions;
                             garden_additional_questions1_path.push(garden_additional_questions1);
@@ -9984,7 +9907,6 @@ function VMFVisit(received_on_start,received_on_end,offset_value)
                             veg_in_plotted_areas1_path.push(veg_in_plotted_areas1);
                             } 
                             }
-
                             }
 
                              if(homestead_gardening1.usage_percent_list){
@@ -10059,14 +9981,14 @@ function VMFVisit(received_on_start,received_on_end,offset_value)
                             if(trackedEntityInstances.length == 0)
                             {       
                             // console.log("No TrackedEntityInstance Exist");
-                            // debugger;
                             }
                             else
                             { 
 
                            for(var p1=0;p1<trackedEntityInstances.length;p1++)
 					        {	
-                				
+                			
+                            //For enrollment of new events//
 						   var trackEntityInstance=trackedEntityInstances[p1].trackedEntityInstance;
 						   var orgUnit1 = trackedEntityInstances[p1].orgUnit;
 
@@ -10111,6 +10033,7 @@ function VMFVisit(received_on_start,received_on_end,offset_value)
 
                 function createEvent(){
 
+                    //For fetching and compairing the values of dataElements//
                     for(var p=0;p<dataElements.length;p++){
 
                             dataElementName =dataElements[p].name;
@@ -16111,8 +16034,9 @@ function VMFVisit(received_on_start,received_on_end,offset_value)
                                 }
                     }             
 
+                    //Checking for duplicacy//
                      event.dataValues = removeDuplicates(event.dataValues); 
-
+                     //Posting the Event//
                         $.ajax({
                             async: false,
                             type: "POST",
